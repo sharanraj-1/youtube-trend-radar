@@ -38,10 +38,22 @@ export const OPTIONAL_ENV = [
 
 let cached: Env | null = null;
 
+/** Env values pasted through shells/dashboards can carry a BOM or stray whitespace; normalise them. */
+function clean(v: string | undefined): string | undefined {
+  if (typeof v !== "string") return v;
+  const t = v.replace(/^\uFEFF/, "").trim();
+  return t === "" ? undefined : t;
+}
+function cleanedEnv(): Record<string, string | undefined> {
+  const out: Record<string, string | undefined> = {};
+  for (const [k, v] of Object.entries(process.env)) out[k] = clean(v);
+  return out;
+}
+
 /** Parses and caches env. Throws a readable error (never containing values) when invalid. */
 export function env(): Env {
   if (cached) return cached;
-  const parsed = EnvSchema.safeParse(process.env);
+  const parsed = EnvSchema.safeParse(cleanedEnv());
   if (!parsed.success) {
     const issues = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`);
     throw new Error(`Invalid environment configuration -> ${issues.join("; ")}`);
@@ -52,8 +64,9 @@ export function env(): Env {
 
 /** Presence report (booleans only, never values) for /api/health and boot logs. */
 export function envReport() {
-  const present = (k: string) => typeof process.env[k] === "string" && process.env[k]!.trim() !== "";
-  const parsed = EnvSchema.safeParse(process.env);
+  const e = cleanedEnv();
+  const present = (k: string) => typeof e[k] === "string";
+  const parsed = EnvSchema.safeParse(e);
   return {
     valid: parsed.success,
     problems: parsed.success ? [] : parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`),
@@ -63,7 +76,7 @@ export function envReport() {
 }
 
 export function baseUrl(): string {
-  const e = process.env;
+  const e = cleanedEnv();
   if (e.APP_BASE_URL) return e.APP_BASE_URL.replace(/\/$/, "");
   if (e.VERCEL_PROJECT_PRODUCTION_URL) return `https://${e.VERCEL_PROJECT_PRODUCTION_URL}`;
   if (e.VERCEL_URL) return `https://${e.VERCEL_URL}`;

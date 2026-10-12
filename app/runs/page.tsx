@@ -1,21 +1,24 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { connection } from "next/server";
 import { EmptyState, ErrorState, LoadingBlock } from "@/components/States";
 import { listRuns } from "@/lib/queries";
 import { istDateTime } from "@/lib/render/format";
+import { minutes, PHASES, phaseIndex, RUN_STATUS_PLAIN } from "@/lib/render/guide";
 import { STAGES } from "@/lib/pipeline/types";
 
-export const metadata = { title: "Runs" };
+export const metadata = { title: "Run log" };
 
 export default function RunsPage() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Run log</h1>
-        <p className="mt-1 text-sm text-muted">
-          Every pipeline run, stage by stage: status, time spent, retries, YouTube quota and Gemini calls. Snapshot runs refresh video stats daily.
+    <div className="space-y-8">
+      <header className="space-y-2">
+        <h1 className="font-serif text-4xl font-medium tracking-tight">Run log</h1>
+        <p className="max-w-2xl text-muted">
+          Each time a brief is made, it&apos;s recorded here: when it ran, how long it took, and whether every step worked. Daily stat
+          refreshes appear too.
         </p>
-      </div>
+      </header>
       <Suspense fallback={<LoadingBlock lines={3} />}>
         <Runs />
       </Suspense>
@@ -23,16 +26,15 @@ export default function RunsPage() {
   );
 }
 
-const STATUS_CLS: Record<string, string> = {
-  done: "bg-ok/15 text-ok",
-  degraded: "bg-warn/15 text-warn",
-  failed: "bg-accent/15 text-accent",
-  skipped: "bg-accent/15 text-accent",
-  running: "bg-[var(--rising)]/15 text-[var(--rising)]",
-  pending: "bg-surface-2 text-muted",
+const STAGE_TONE: Record<string, string> = {
+  done: "text-ok",
+  failed: "text-accent",
+  skipped: "text-accent",
+  running: "text-rising",
+  pending: "text-muted",
 };
 
-const secs = (ms: number) => (ms >= 60_000 ? `${(ms / 60_000).toFixed(1)}m` : `${(ms / 1000).toFixed(1)}s`);
+const secs = (ms: number) => (ms >= 60_000 ? `${(ms / 60_000).toFixed(1)} min` : `${(ms / 1000).toFixed(1)} s`);
 
 async function Runs() {
   await connection();
@@ -42,69 +44,85 @@ async function Runs() {
   } catch {
     return <ErrorState what="the run log" />;
   }
-  if (runs.length === 0) return <EmptyState title="No runs yet" />;
+  if (runs.length === 0) return <EmptyState title="Nothing has run yet">The first run is scheduled for Sunday 5:00 AM IST.</EmptyState>;
+
+  const firstBriefRun = runs.find((r) => r.kind !== "snapshot")?.id;
   return (
-    <ul className="space-y-4">
+    <ol className="divide-y divide-border border-y border-border">
       {runs.map((r) => {
-        const total = r.finishedAt ? r.finishedAt.getTime() - r.startedAt.getTime() : null;
-        const stages = STAGES.map((s) => r.stages.find((x) => x.stage === s)).filter((s) => !!s);
+        const s = RUN_STATUS_PLAIN[r.status] ?? { label: r.status, tone: "text-muted" };
+        const took = r.finishedAt ? r.finishedAt.getTime() - r.startedAt.getTime() : null;
+        const isSnapshot = r.kind === "snapshot";
+        const reached = phaseIndex(r.currentStage);
+        const stages = STAGES.map((st) => r.stages.find((x) => x.stage === st)).filter((x) => !!x);
+        const title = isSnapshot ? "Daily stats refresh" : r.kind === "weekly" ? "Weekly brief (scheduled)" : "Brief (started manually)";
         return (
-          <li key={r.id} className="rounded-2xl border border-border bg-surface p-4 sm:p-5">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-              <span className="font-mono font-semibold">#{r.id}</span>
-              <span className="rounded bg-surface-2 px-1.5 py-0.5 text-xs uppercase tracking-wide text-muted">{r.kind}</span>
-              <span className={`rounded px-1.5 py-0.5 text-xs font-semibold uppercase ${STATUS_CLS[r.status] ?? ""}`}>{r.status}</span>
-              {r.status === "running" && <span className="text-xs text-muted">at {r.currentStage}</span>}
-              <span className="text-muted">{istDateTime(r.startedAt)}</span>
+          <li key={r.id} className="py-5">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+              <h2 className={isSnapshot ? "text-sm text-muted" : "font-serif text-xl"}>{title}</h2>
+              <span className={`text-sm font-medium ${s.tone}`}>{s.label}</span>
             </div>
-            <dl className="mt-3 grid grid-cols-3 gap-2 text-xs sm:max-w-md">
-              <div>
-                <dt className="text-muted">Wall time</dt>
-                <dd className="font-semibold tabular-nums">{total !== null ? secs(total) : "—"}</dd>
-              </div>
-              <div>
-                <dt className="text-muted">YouTube quota</dt>
-                <dd className="font-semibold tabular-nums">{r.quotaUsed} units</dd>
-              </div>
-              <div>
-                <dt className="text-muted">Gemini calls</dt>
-                <dd className="font-semibold tabular-nums">{r.geminiCalls}</dd>
-              </div>
-            </dl>
-            {stages.length > 0 && (
-              <ol className="mt-3 flex flex-wrap gap-1.5">
-                {stages.map((s) => (
-                  <li
-                    key={s.stage}
-                    title={s.error ?? undefined}
-                    className={`rounded-md px-2 py-1 text-xs ${STATUS_CLS[s.status] ?? "bg-surface-2"}`}
-                  >
-                    <span className="font-semibold">{s.stage}</span> <span className="tabular-nums opacity-80">{secs(s.durationMs)}</span>
-                    {s.invocations > 1 && <span className="opacity-70"> · {s.invocations} calls</span>}
-                    {s.attempts > 0 && <span className="opacity-70"> · {s.attempts} fail</span>}
-                  </li>
-                ))}
+            <p className="mt-1 text-sm text-muted">
+              {istDateTime(r.startedAt)}
+              {took !== null && <> · took {minutes(took)}</>}
+              {!isSnapshot && <> · {r.quotaUsed.toLocaleString("en-IN")} of 10,000 daily YouTube units · {r.geminiCalls} AI calls</>}
+            </p>
+
+            {!isSnapshot && (
+              <ol className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs" aria-label="Steps">
+                {PHASES.map((p, i) => {
+                  const done = r.status === "done" || r.status === "degraded" ? true : i < reached;
+                  const current = r.status === "running" && i === reached;
+                  return (
+                    <li key={p.label} className={current ? "font-medium text-rising" : done ? "text-text" : "text-faint"}>
+                      {done ? "✓" : current ? "●" : "○"} {p.label}
+                    </li>
+                  );
+                })}
               </ol>
             )}
-            {r.coverageNote && <p className="mt-3 text-xs text-muted">Coverage: {r.coverageNote}</p>}
-            {r.error && <p className="mt-2 text-xs text-accent">Error: {r.error}</p>}
-            {r.stages.some((s) => s.error) && (
-              <details className="mt-2 text-xs text-muted">
-                <summary className="cursor-pointer">Stage errors</summary>
-                <ul className="mt-1 space-y-1">
-                  {r.stages
-                    .filter((s) => s.error)
-                    .map((s) => (
-                      <li key={s.stage}>
-                        <span className="font-semibold">{s.stage}:</span> {s.error}
-                      </li>
-                    ))}
-                </ul>
+            {r.coverageNote && <p className="mt-2 text-sm text-warn">Note: {r.coverageNote}</p>}
+            {r.error && <p className="mt-2 text-sm text-accent">Problem: {r.error}</p>}
+
+            {stages.length > 0 && (
+              <details className="mt-3 text-sm" open={r.id === firstBriefRun}>
+                <summary className="cursor-pointer text-muted hover:text-text">Technical details</summary>
+                <div className="mt-2 overflow-x-auto">
+                  <table className="w-full min-w-[30rem] text-left text-xs">
+                    <thead className="text-muted">
+                      <tr className="border-b border-border">
+                        <th className="py-1.5 pr-3 font-medium">Stage</th>
+                        <th className="py-1.5 pr-3 font-medium">Status</th>
+                        <th className="py-1.5 pr-3 font-medium">Time</th>
+                        <th className="py-1.5 pr-3 font-medium">Invocations</th>
+                        <th className="py-1.5 font-medium">Failures</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {stages.map((st) => (
+                        <tr key={st.stage} className="border-b border-border/60 align-top">
+                          <td className="py-1.5 pr-3 font-mono">{st.stage}</td>
+                          <td className={`py-1.5 pr-3 ${STAGE_TONE[st.status] ?? ""}`}>{st.status}</td>
+                          <td className="py-1.5 pr-3 tabular-nums">{secs(st.durationMs)}</td>
+                          <td className="py-1.5 pr-3 tabular-nums">{st.invocations}</td>
+                          <td className="py-1.5 tabular-nums">
+                            {st.attempts}
+                            {st.error && <span className="block max-w-[22rem] break-words text-accent">{st.error.slice(0, 220)}</span>}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <p className="mt-2 text-xs text-faint">Run #{r.id}</p>
+                </div>
               </details>
             )}
           </li>
         );
       })}
-    </ul>
+      <li className="py-4 text-xs text-muted">
+        Want the raw status? See <Link className="underline" href="/api/health">system health</Link>.
+      </li>
+    </ol>
   );
 }

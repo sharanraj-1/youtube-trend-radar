@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
-import { BriefView } from "@/components/BriefView";
+import { BriefFlow } from "@/components/brief/BriefFlow";
+import { RunProgress } from "@/components/RunProgress";
 import { EmptyState, ErrorState, LoadingBlock } from "@/components/States";
 import { activeRun, latestBrief } from "@/lib/queries";
 import { log } from "@/lib/log";
@@ -23,26 +24,22 @@ async function LatestBrief() {
     [brief, running] = await Promise.all([latestBrief(), activeRun()]);
   } catch (err) {
     log.error("home load failed", { error: err instanceof Error ? err.message : String(err) });
-    return <ErrorState what="the latest brief" />;
+    return <ErrorState what="this week's brief" />;
   }
   return (
-    <div className="space-y-6">
-      {running && (
-        <p className="rounded-lg border border-border bg-surface px-4 py-3 text-sm">
-          <span className="mr-2 inline-block h-2 w-2 animate-pulse rounded-full bg-accent align-middle" />
-          A new brief is being generated (run #{running.id}, stage {running.currentStage}).{" "}
-          <Link href="/runs" className="underline">
-            Watch progress
-          </Link>
-        </p>
-      )}
+    <div className="space-y-8">
+      {running && <RunProgress stage={running.currentStage} startedAt={running.startedAt} compact={!!brief} />}
       {brief ? (
-        <BriefView brief={brief.json as BriefJson} createdAt={brief.createdAt} />
+        <BriefFlow brief={brief.json as BriefJson} briefId={brief.id} createdAt={brief.createdAt.toISOString()} />
       ) : (
-        <EmptyState title="No brief yet">
-          The first Sunday brief appears here once a run completes. Runs fire automatically every Sunday at 05:00 IST, or an admin can start
-          one from <Link className="underline" href="/settings">Settings</Link>.
-        </EmptyState>
+        !running && (
+          <EmptyState title="Your first brief is on its way">
+            <p>
+              A new brief is prepared automatically every Sunday morning and is ready by 11:00 AM IST. If you&apos;re the channel owner, you
+              can also <Link className="underline" href="/settings">create one now</Link>.
+            </p>
+          </EmptyState>
+        )
       )}
     </div>
   );

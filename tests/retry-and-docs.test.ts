@@ -77,3 +77,14 @@ describe("Gemini quota classification", () => {
     expect(isDailyQuotaError(new ApiError({ status: 503, message: "high demand" }))).toBe(false);
   });
 });
+
+import { baseUrl } from "@/lib/env";
+describe("baseUrl", () => {
+  it("strips a BOM / whitespace that shells add to pasted env values", () => {
+    const prev = process.env.APP_BASE_URL;
+    process.env.APP_BASE_URL = "\uFEFFhttps://example.test/  ";
+    expect(baseUrl()).toBe("https://example.test");
+    expect(() => new URL(`${baseUrl()}/api/pipeline/step`)).not.toThrow();
+    process.env.APP_BASE_URL = prev;
+  });
+});

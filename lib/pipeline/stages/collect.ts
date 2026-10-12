@@ -14,8 +14,7 @@ import type { StageContext, StageResult } from "../types";
 
 type Source = "peer" | "chart" | "search";
 const SOURCE_RANK: Record<Source, number> = { peer: 3, chart: 2, search: 1 };
-const PHASES = ["resolve", "sources", "hydrate", "channels", "baselines", "comments", "done"] as const;
-type Phase = (typeof PHASES)[number];
+type Phase = "resolve" | "sources" | "hydrate" | "channels" | "baselines" | "comments" | "done";
 
 export interface CollectPayload {
   phase: Phase;

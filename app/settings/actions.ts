@@ -73,26 +73,28 @@ export async function saveSettings(_: ActionState, form: FormData): Promise<Acti
       blockedChannelIds: list(form.get("blockedChannelIds")),
     });
     refresh();
-    return {
-      ok: true,
-      message: `Saved. Each run will use up to ${cfg.maxSearchQueriesPerRun * 100} units on searches.`,
-    };
+    return { ok: true, message: `Saved. Changes apply from the next brief (${cfg.seedKeywords.length} topics, ${cfg.peerChannelHandles.length} channels).` };
   } catch (err) {
     const msg = err instanceof Error && "issues" in err ? (err as { issues: { path: unknown[]; message: string }[] }).issues.map((i) => `${i.path.join(".")}: ${i.message}`) : [];
-    return { ok: false, message: "Some values are invalid.", details: msg };
+    return { ok: false, message: "A few fields need fixing before we can save:", details: msg };
   }
 }
 
-export async function resolveHandlesAction(_: ActionState): Promise<ActionState> {
+/** Checks the handles currently typed in the form (falls back to the saved list). */
+export async function resolveHandlesAction(_: ActionState, form?: FormData): Promise<ActionState> {
   if (!(await isAdmin())) return { ok: false, message: "Session expired. Please log in again." };
   try {
     const cfg = await getConfig();
     const yt = new YouTubeClient(env().YOUTUBE_API_KEY, new QuotaManager(100));
-    const handles = [...cfg.peerChannelHandles, ...(cfg.ownChannelHandle ? [cfg.ownChannelHandle] : [])];
+    const typed = form ? list(form.get("peerChannelHandles")) : [];
+    const own = form ? String(form.get("ownChannelHandle") ?? "").trim() : cfg.ownChannelHandle;
+    const handles = [...(typed.length ? typed : cfg.peerChannelHandles), ...(own ? [own] : [])].slice(0, 40);
     const { resolved, unresolved } = await resolveHandles(yt, handles, { isPeer: true }, { useCache: false });
     return {
       ok: unresolved.length === 0,
-      message: `${resolved.length} resolved, ${unresolved.length} unresolved (dropped from runs). ${yt.quota.used} quota units used.`,
+      message: unresolved.length
+        ? `${resolved.length} found, ${unresolved.length} not found. Fix or remove the ones marked ✗ (they're skipped during runs).`
+        : `All ${resolved.length} channels found.`,
       details: [
         ...resolved.map((r) => `✓ ${r.handle} → ${r.title} (${r.id}), ${r.subscriberCount?.toLocaleString("en-IN") ?? "hidden"} subs`),
         ...unresolved.map((h) => `✗ ${h} did not resolve`),
@@ -104,12 +106,18 @@ export async function resolveHandlesAction(_: ActionState): Promise<ActionState>
   }
 }
 
-export async function generateNow(_: ActionState): Promise<ActionState> {
+export async function generateNow(_prev: ActionState): Promise<ActionState> {
+  void _prev;
   if (!(await isAdmin())) return { ok: false, message: "Session expired. Please log in again." };
   try {
     const { run, created } = await manualRun();
     if (created) after(() => stepAndChain(run.id).then(() => undefined));
-    return { ok: true, message: created ? `Run #${run.id} started. Follow it on the Runs page (~10–15 min).` : `Run #${run.id} is already in progress.` };
+    return {
+      ok: true,
+      message: created
+        ? "Started! Your new brief will be ready in about 10–15 minutes. You can close this page."
+        : "A brief is already being made right now. It will appear on the home page when it's done.",
+    };
   } catch (err) {
     if (err instanceof RateLimitedError) return { ok: false, message: err.message };
     log.error("generate now failed", { error: err instanceof Error ? err.message : String(err) });

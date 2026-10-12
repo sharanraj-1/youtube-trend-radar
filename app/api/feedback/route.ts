@@ -4,17 +4,18 @@ import { verifyFeedback } from "@/lib/feedback";
 import { log } from "@/lib/log";
 
 const MESSAGES: Record<string, string> = {
-  up: "Thanks! We'll weigh similar trends higher.",
-  down: "Got it — noted as not useful.",
-  filmed: "Nice. Marked as filming — good luck with the shoot!",
+  up: "Saved as “maybe later”. Thanks, this helps future briefs.",
+  down: "Got it. We'll treat this as not a fit for your channel.",
+  filmed: "Added to your plan. Good luck with the shoot!",
 };
 
 function page(title: string, body: string, status = 200) {
-  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title>
-<style>body{margin:0;min-height:100vh;display:grid;place-items:center;font-family:system-ui,sans-serif;background:#f8fafc;color:#0f172a}
-@media(prefers-color-scheme:dark){body{background:#0b1120;color:#e2e8f0}a{color:#93c5fd}}
-main{max-width:420px;padding:32px;text-align:center}h1{font-size:22px;margin:0 0 8px}p{margin:0 0 16px;color:inherit;opacity:.8}</style></head>
-<body><main><h1>${title}</h1><p>${body}</p><a href="/">Back to the brief</a></main></body></html>`;
+  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} · Trend Radar</title>
+<style>:root{--bg:#f7f4ee;--text:#1d1a16;--muted:#6d655a;--accent:#b3341f}
+@media(prefers-color-scheme:dark){:root{--bg:#151412;--text:#ece7de;--muted:#a59d90;--accent:#ec6a50}}
+body{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--bg);color:var(--text);font:16px/1.6 system-ui,sans-serif}
+main{max-width:26rem;padding:2rem}h1{font:500 1.9rem/1.2 Georgia,serif;margin:0 0 .5rem}p{margin:0 0 1.25rem;color:var(--muted)}a{color:var(--accent)}</style></head>
+<body><main><h1>${title}</h1><p>${body}</p><a href="/">Back to this week's brief →</a></main></body></html>`;
   return new Response(html, { status, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
 }
 

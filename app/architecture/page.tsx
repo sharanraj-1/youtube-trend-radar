@@ -14,53 +14,77 @@ const STAGES: [string, string][] = [
   ["RENDER → DELIVER", "Server-rendered brief (web + email HTML + JSON). The template injects every statistic. Email via Resend and alerts via Telegram are best-effort."],
 ];
 
+const TIMELINE: [string, string, string][] = [
+  ["5:00 AM", "We gather this week's videos", "Recent uploads from the channels you follow, YouTube's trending list, and searches for your topics (AI tools, apps, reviews…)."],
+  ["5:05 AM", "AI reads every title", "Gemini Flash works out what each video is about and its format (tutorial, review, Short…). Off-topic and paid-ad videos are dropped."],
+  ["5:10 AM", "We spot the trends", "Videos on the same topic from at least two creators are grouped. We check which groups are getting more views than those channels usually do."],
+  ["5:12 AM", "We write it up and fact-check it", "AI writes the summary and video ideas. Code then checks that every number and example is real; anything that fails is removed."],
+  ["By 11:00 AM", "Your brief is ready", "It appears on the home page (and in your inbox, if email is set up). If anything goes wrong, a backup brief is published instead."],
+];
+
 export default function ArchitecturePage() {
   return (
-    <div className="space-y-8">
-      <header className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight">How it works</h1>
-        <p className="max-w-2xl text-muted">
-          Trend Radar automates the research, not the creator&apos;s judgment. Every Sunday at 05:00 IST it collects live YouTube data and finds
-          topics that several creators are covering and that are beating those channels&apos; normal view counts. It then writes a brief Ishaan can act
-          on before 11:00.
+    <div className="space-y-14">
+      <header className="space-y-3">
+        <h1 className="font-serif text-4xl font-medium tracking-tight">How it works</h1>
+        <p className="max-w-2xl text-lg leading-relaxed text-muted">
+          Trend Radar does the Sunday research for you: hours of scrolling YouTube become a 10-minute read. It recommends; you decide what to film.
         </p>
       </header>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Components map</h2>
-        <Mermaid chart={COMPONENTS_MERMAID} />
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Pipeline</h2>
-        <p className="text-sm text-muted">
-          Vercel Hobby functions stop at 300 seconds, so each invocation runs a single stage (or a checkpointed slice of one) for under ~170 seconds. It
-          records the result in <code className="font-mono">stage_outputs</code> and then triggers the next step with <code className="font-mono">after()</code>.
-          A conditional <code className="font-mono">UPDATE … WHERE status IN (…)</code> claims each stage, so duplicate triggers can&apos;t run it twice. A stage
-          that fails 3 times sends the run down the degraded path straight to RENDER. A watchdog publishes a fallback brief if nothing is ready by Sunday
-          morning.
-        </p>
-        <ol className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface">
-          {STAGES.map(([name, text]) => (
-            <li key={name} className="grid gap-1 px-5 py-4 sm:grid-cols-[150px_1fr] sm:gap-4">
-              <span className="font-mono text-sm font-semibold">{name}</span>
-              <span className="text-sm leading-relaxed text-muted">{text}</span>
+      <section aria-labelledby="sunday">
+        <h2 id="sunday" className="mb-6 text-xs font-semibold uppercase tracking-[0.12em] text-muted">
+          What happens every Sunday
+        </h2>
+        <ol className="relative space-y-8 border-l border-rule pl-6">
+          {TIMELINE.map(([time, title, text], i) => (
+            <li key={title} className="relative">
+              <span className="absolute -left-[2.05rem] flex h-6 w-6 items-center justify-center rounded-full border border-rule bg-bg text-xs font-semibold">
+                {i + 1}
+              </span>
+              <p className="text-xs font-medium uppercase tracking-wide text-accent">{time}</p>
+              <h3 className="mt-1 font-serif text-xl">{title}</h3>
+              <p className="mt-1 max-w-xl leading-relaxed text-muted">{text}</p>
             </li>
           ))}
         </ol>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-3">
+      <section aria-labelledby="trust" className="grid gap-6 sm:grid-cols-3">
+        <h2 id="trust" className="sr-only">
+          Why you can trust it
+        </h2>
         {[
-          ["Free-tier YouTube", "Budget of 6,000 of the 10,000 daily units per run; cheap 1-unit calls first; stops searching immediately on quotaExceeded."],
-          ["Free-tier Gemini", "About 7 enrichment calls and 1–2 synthesis calls per run (the free tier allows 20 per model per day), at most 3 in flight, backoff with jitter, and fallback across Flash models."],
-          ["Free-tier Vercel + Neon", "Three daily-or-less crons, short functions, 60-day data retention."],
+          ["Real numbers only", "Every figure comes straight from YouTube. The AI writes words, never statistics."],
+          ["Fair to small channels", "Views are compared with each channel's own normal, so a 50K channel's hit counts as much as a 5M one's."],
+          ["Free to run", "Stays inside the free limits of YouTube, Gemini, Vercel and Neon."],
         ].map(([t, d]) => (
-          <div key={t} className="rounded-2xl border border-border bg-surface p-4">
-            <h3 className="text-sm font-semibold">{t}</h3>
-            <p className="mt-1 text-sm text-muted">{d}</p>
+          <div key={t} className="border-t border-rule pt-3">
+            <h3 className="font-medium">{t}</h3>
+            <p className="mt-1 text-sm leading-relaxed text-muted">{d}</p>
           </div>
         ))}
+      </section>
+
+      <section aria-labelledby="tech" className="space-y-6 border-t border-border pt-10">
+        <div className="space-y-2">
+          <h2 id="tech" className="font-serif text-2xl">For the technically curious</h2>
+          <p className="max-w-2xl text-sm leading-relaxed text-muted">
+            Vercel Hobby functions stop at 300 seconds, so the pipeline runs as checkpointed stages: each invocation runs one stage (under
+            ~170 s), saves its output in Postgres, and triggers the next with <code className="font-mono text-xs">after()</code>. A database
+            claim stops two invocations running the same stage. A stage that fails three times sends the run down a degraded path to
+            publishing, and a watchdog posts a backup brief if nothing is ready.
+          </p>
+        </div>
+        <Mermaid chart={COMPONENTS_MERMAID} />
+        <ol className="divide-y divide-border border-y border-border">
+          {STAGES.map(([name, text]) => (
+            <li key={name} className="grid gap-1 py-4 sm:grid-cols-[150px_1fr] sm:gap-4">
+              <span className="font-mono text-sm font-semibold">{name}</span>
+              <span className="text-sm leading-relaxed text-muted">{text}</span>
+            </li>
+          ))}
+        </ol>
       </section>
     </div>
   );
