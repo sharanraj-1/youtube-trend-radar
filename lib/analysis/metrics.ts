@@ -49,3 +49,12 @@ export function round(n: number | null | undefined, digits = 2): number | null {
   const f = 10 ** digits;
   return Math.round(n * f) / f;
 }
+
+/**
+ * Paid promotion inflates views without engagement (e.g. brand ads at 0.001% likes/views), which would produce
+ * absurd outlier multiples. Only judged when likes are visible.
+ */
+export function likelyPromoted(views: number, likes: number | null, comments: number | null, minViews: number, maxEngagement: number): boolean {
+  if (likes === null || views < minViews) return false;
+  return (likes + (comments ?? 0)) / views < maxEngagement;
+}

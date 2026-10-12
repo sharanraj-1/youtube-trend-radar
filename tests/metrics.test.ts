@@ -51,3 +51,16 @@ describe("velocity72h", () => {
     expect(velocity72h([{ capturedAt: h(0), views: 500 }, { capturedAt: h(24), views: 400 }])).toBe(0);
   });
 });
+
+import { likelyPromoted } from "@/lib/analysis/metrics";
+describe("likelyPromoted", () => {
+  it("flags high-view, near-zero-engagement videos (paid promotion)", () => {
+    expect(likelyPromoted(1_745_594, 7, 0, 20_000, 0.002)).toBe(true); // brand ad
+    expect(likelyPromoted(3_577_800, 6119, 700, 20_000, 0.002)).toBe(true); // 0.19%
+    expect(likelyPromoted(118_400, 1638, 50, 20_000, 0.002)).toBe(false); // organic 1.4%
+  });
+  it("never judges hidden likes or small videos", () => {
+    expect(likelyPromoted(500_000, null, 3, 20_000, 0.002)).toBe(false);
+    expect(likelyPromoted(5_000, 1, 0, 20_000, 0.002)).toBe(false);
+  });
+});

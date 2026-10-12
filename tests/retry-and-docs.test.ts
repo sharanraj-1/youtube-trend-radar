@@ -65,3 +65,15 @@ describe("Components Map", () => {
     expect(md).toContain(COMPONENTS_MERMAID);
   });
 });
+
+import { ApiError } from "@google/genai";
+import { isDailyQuotaError } from "@/lib/gemini/client";
+describe("Gemini quota classification", () => {
+  it("distinguishes per-day free-tier exhaustion (no retry) from per-minute 429s (retry)", () => {
+    const daily = new ApiError({ status: 429, message: '{"quotaId":"GenerateRequestsPerDayPerProjectPerModel-FreeTier"}' });
+    const minute = new ApiError({ status: 429, message: '{"quotaId":"GenerateRequestsPerMinutePerProjectPerModel-FreeTier"}' });
+    expect(isDailyQuotaError(daily)).toBe(true);
+    expect(isDailyQuotaError(minute)).toBe(false);
+    expect(isDailyQuotaError(new ApiError({ status: 503, message: "high demand" }))).toBe(false);
+  });
+});

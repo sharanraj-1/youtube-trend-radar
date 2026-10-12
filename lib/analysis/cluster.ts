@@ -112,11 +112,15 @@ export function clusterVideos(
   const mergeCosine = opts.mergeCosine ?? weights.cluster.mergeCosine;
   const minChannels = opts.minChannels ?? weights.cluster.minDistinctChannels;
 
-  // 1. initial grouping
+  // 1. initial grouping by each video's *dominant* entity: the one most frequent across this week's corpus
+  //    (so "Claude Haiku 5.5" + "Claude" groups under Claude when Claude is the bigger story), ties -> listed first.
+  const freq = new Map<string, number>();
+  for (const v of videos) for (const e of new Set(v.entities.map(canon))) freq.set(e, (freq.get(e) ?? 0) + 1);
   const initial = new Map<string, ScoredVideo[]>();
   for (const v of videos) {
-    const first = v.entities.find((e) => !isGeneric(e));
-    const key = first ? `e:${canon(first)}` : `t:${v.topicKey || v.id}`;
+    const named = v.entities.filter((e) => !isGeneric(e));
+    const dominant = named.reduce<string | null>((best, e) => (best === null || (freq.get(canon(e)) ?? 0) > (freq.get(canon(best)) ?? 0) ? e : best), null);
+    const key = dominant ? `e:${canon(dominant)}` : `t:${v.topicKey || v.id}`;
     const arr = initial.get(key) ?? [];
     arr.push(v);
     initial.set(key, arr);

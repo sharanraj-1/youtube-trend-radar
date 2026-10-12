@@ -4,7 +4,10 @@
     "medianOutlier": 1.5,
     "wowGrowth": 1.0,
     "saturatedPenalty": 1.0,
-    "alreadyCoveredPenalty": 0.8
+    "alreadyCoveredPenalty": 0.8,
+    "outlierCap": 5,
+    "outlierShrinkK": 3,
+    "perVideoOutlierCap": 20
   },
   "cluster": {
     "mergeCosine": 0.35,
@@ -26,13 +29,32 @@
   },
   "budget": {
     "youtubeUnitsPerRun": 6000,
-    "maxVideosToEnrich": 480,
-    "enrichBatchSize": 40,
+    "maxVideosToEnrich": 350,
+    "enrichBatchSize": 50,
     "commentVideos": 60,
     "stageTimeBudgetMs": 170000
   },
   "genericEntities": [
-    "AI", "Artificial Intelligence", "YouTube", "India", "Android", "Smartphone", "Smartphones",
-    "Laptop", "Laptops", "Apps", "App", "Technology", "Tech", "Internet", "Software", "Mobile", "Phone"
-  ]
+    "AI",
+    "Artificial Intelligence",
+    "YouTube",
+    "India",
+    "Android",
+    "Smartphone",
+    "Smartphones",
+    "Laptop",
+    "Laptops",
+    "Apps",
+    "App",
+    "Technology",
+    "Tech",
+    "Internet",
+    "Software",
+    "Mobile",
+    "Phone"
+  ],
+  "filters": {
+    "promotedMinViews": 20000,
+    "promotedMaxEngagement": 0.002
+  }
 }

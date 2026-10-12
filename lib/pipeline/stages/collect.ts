@@ -32,11 +32,26 @@ export interface CollectPayload {
   /** Final candidate set after channel filters. */
   videoIds: string[];
   droppedSmallChannels: number;
+  droppedLanguage?: number;
   comments: Record<string, { text: string; likes: number }[]>;
   commentsChecked: number;
   quotaExhausted: boolean;
   collectedAt: string | null;
   notes: string[];
+}
+
+/**
+ * Language gate: relevanceLanguage only *biases* search, so filter explicitly. A video passes when its declared
+ * language is one of the configured ones, or (undeclared) when its title is mostly Latin/Devanagari script.
+ */
+export function languageAllowed(v: VideoItem, languages: string[]): boolean {
+  const allowed = new Set(languages.map((l) => l.slice(0, 2).toLowerCase()));
+  const declared = (v.snippet.defaultAudioLanguage ?? v.snippet.defaultLanguage ?? "").slice(0, 2).toLowerCase();
+  if (declared && declared !== "zx" && declared !== "un") return allowed.has(declared);
+  const letters = v.snippet.title.match(/\p{L}/gu) ?? [];
+  if (letters.length === 0) return true;
+  const ok = letters.filter((c) => /[A-Za-zऀ-ॿ]/.test(c)).length;
+  return ok / letters.length >= 0.7;
 }
 
 export function guessLang(v: VideoItem): string {
@@ -170,7 +185,9 @@ export async function collect(ctx: StageContext): Promise<StageResult> {
           throw err;
         }
       });
-      const items = results.flat().filter((v) => (v.snippet.liveBroadcastContent ?? "none") === "none" && new Date(v.snippet.publishedAt) >= since);
+      const fetched = results.flat().filter((v) => (v.snippet.liveBroadcastContent ?? "none") === "none" && new Date(v.snippet.publishedAt) >= since);
+      const items = fetched.filter((v) => p.candidates[v.id] === "peer" || languageAllowed(v, cfg.relevanceLanguages));
+      p.droppedLanguage = (p.droppedLanguage ?? 0) + (fetched.length - items.length);
       await storeVideos(items, p.candidates, ctx.run.id);
       batch.flat().forEach((id) => p.hydrated.push(id));
       if (p.quotaExhausted) break;
@@ -264,7 +281,7 @@ export async function collect(ctx: StageContext): Promise<StageResult> {
       const rows = await db()
         .select({
           id: schema.videos.id,
-          views: sql<number>`(SELECT s.views FROM video_snapshots s WHERE s.video_id = ${schema.videos.id} ORDER BY s.captured_at DESC LIMIT 1)`,
+          views: sql<number>`(SELECT s.views FROM video_snapshots s WHERE s.video_id = "videos"."id" ORDER BY s.captured_at DESC LIMIT 1)`,
           median: schema.channels.medianRecentViews,
         })
         .from(schema.videos)

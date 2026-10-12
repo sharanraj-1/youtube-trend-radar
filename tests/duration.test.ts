@@ -29,3 +29,17 @@ describe("isShort", () => {
     expect(isShort(null)).toBe(false);
   });
 });
+
+import { languageAllowed } from "@/lib/pipeline/stages/collect";
+describe("languageAllowed", () => {
+  const mk = (title: string, lang?: string) =>
+    ({ id: "x", snippet: { title, publishedAt: "", channelId: "c", description: "", defaultAudioLanguage: lang } }) as never;
+  it("keeps English, Hindi and Hinglish; drops other declared languages and scripts", () => {
+    expect(languageAllowed(mk("Best AI tools 2026"), ["en", "hi"])).toBe(true);
+    expect(languageAllowed(mk("Cursor AI से कोडिंग कैसे करें"), ["en", "hi"])).toBe(true);
+    expect(languageAllowed(mk("Anything", "en-IN"), ["en", "hi"])).toBe(true);
+    expect(languageAllowed(mk("Ragazzino sviluppa un tool AI", "it"), ["en", "hi"])).toBe(false);
+    expect(languageAllowed(mk("ИИ-БЛОГЕР ДЛЯ ТВОЕГО БИЗНЕСА"), ["en", "hi"])).toBe(false);
+    expect(languageAllowed(mk("બારેજાધામના તમામ સેવકો માટે અગત્યની સૂચના"), ["en", "hi"])).toBe(false);
+  });
+});

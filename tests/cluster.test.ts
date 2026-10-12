@@ -58,6 +58,18 @@ describe("clusterVideos", () => {
     expect(cs[0].stats.distinct_channels).toBe(3);
   });
 
+  it("groups by the corpus-dominant entity, not just the first listed", () => {
+    const vids = [
+      v({ channelId: "A", title: "Claude Haiku 5.5 is live", entities: ["Claude Haiku 5.5", "Claude"] }),
+      v({ channelId: "B", title: "Claude for Google Workspace", entities: ["Claude", "Google Workspace"] }),
+      v({ channelId: "C", title: "Claude projects tips", entities: ["Claude"] }),
+    ];
+    const cs = clusterVideos(vids);
+    expect(cs).toHaveLength(1);
+    expect(cs[0].topEntity).toBe("Claude");
+    expect(cs[0].videoIds).toHaveLength(3);
+  });
+
   it("merges topic_key groups by TF-IDF similarity >= 0.35", () => {
     const vids = [
       v({ channelId: "A", title: "Free AI video generator tool text to video", topicKey: "free-ai-video-generator" }),

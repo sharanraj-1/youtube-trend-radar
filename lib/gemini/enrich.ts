@@ -30,6 +30,7 @@ export function fallbackEnrichment(v: EnrichInput): EnrichResult {
     entities: [],
     topic_key: slug || `video-${v.video_id.toLowerCase()}`,
     topic_summary: v.title.slice(0, 200),
+    in_niche: true, // unknown: don't silently drop
   };
 }
 
@@ -50,6 +51,7 @@ export async function enrichBatch(items: EnrichInput[], onCall?: () => void): Pr
         responseSchema: ENRICH_RESPONSE_SCHEMA,
         validator: EnrichResponse,
         temperature: 0.1,
+        timeoutMs: 120_000,
         onCall,
       });
       model = m;

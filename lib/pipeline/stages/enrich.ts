@@ -1,8 +1,9 @@
-import { and, inArray, not, sql } from "drizzle-orm";
+import { and, eq, inArray, not, sql } from "drizzle-orm";
 import weights from "@/config/weights.json";
 import { db, schema } from "../../db";
-import { chunk, mapLimit } from "../../retry";
+import { chunk } from "../../retry";
 import { enrichBatch } from "../../gemini/enrich";
+import { GeminiQuotaExhaustedError } from "../../gemini/client";
 import { ENRICH_PROMPT_VERSION } from "../../prompts/enrich";
 import type { CollectPayload } from "./collect";
 import type { StageContext, StageResult } from "../types";
@@ -13,6 +14,7 @@ export interface EnrichPayload {
   enrichedNow: number;
   fallback: number;
   batches: number;
+  quotaStopped?: boolean;
 }
 
 export async function enrich(ctx: StageContext): Promise<StageResult> {
@@ -28,7 +30,7 @@ export async function enrich(ctx: StageContext): Promise<StageResult> {
           .select({
             id: schema.videos.id,
             publishedAt: schema.videos.publishedAt,
-            views: sql<number>`(SELECT s.views FROM video_snapshots s WHERE s.video_id = ${schema.videos.id} ORDER BY s.captured_at DESC LIMIT 1)`,
+            views: sql<number>`(SELECT s.views FROM video_snapshots s WHERE s.video_id = "videos"."id" ORDER BY s.captured_at DESC LIMIT 1)`,
           })
           .from(schema.videos)
           .where(inArray(schema.videos.id, collected.videoIds))
@@ -48,6 +50,7 @@ export async function enrich(ctx: StageContext): Promise<StageResult> {
         .where(
           and(
             inArray(schema.enrichments.videoId, selected),
+            eq(schema.enrichments.promptVersion, ENRICH_PROMPT_VERSION), // prompt upgrades re-enrich
             // fallback rows from earlier runs get another chance with the model
             not(and(sql`${schema.enrichments.model} = 'fallback'`, sql`${schema.enrichments.createdAt} < ${ctx.run.startedAt.toISOString()}::timestamptz`)!),
           ),
@@ -62,8 +65,9 @@ export async function enrich(ctx: StageContext): Promise<StageResult> {
   const batches = chunk(vids, weights.budget.enrichBatchSize);
   // Process in waves of 3 concurrent calls; checkpoint between waves if we're near the time budget.
   for (const wave of chunk(batches, 3)) {
-    if (ctx.timeLeft() < 75_000) return { done: false, payload: p };
-    await mapLimit(wave, 3, async (batch) => {
+    // A batch call can take up to ~120s under load; only start a wave that can finish inside this invocation.
+    if (ctx.timeLeft() < 125_000) return { done: false, payload: p };
+    const results = await Promise.allSettled(wave.map(async (batch) => {
       const out = await enrichBatch(
         batch.map((v) => ({
           video_id: v.id,
@@ -85,6 +89,7 @@ export async function enrich(ctx: StageContext): Promise<StageResult> {
             entities: r.entities,
             topicKey: r.topic_key,
             topicSummary: r.topic_summary,
+            inNiche: r.in_niche,
             model: fb.has(r.video_id) ? "fallback" : out.model,
             promptVersion: ENRICH_PROMPT_VERSION,
             createdAt: new Date(),
@@ -97,6 +102,7 @@ export async function enrich(ctx: StageContext): Promise<StageResult> {
             entities: sql`excluded.entities`,
             topicKey: sql`excluded.topic_key`,
             topicSummary: sql`excluded.topic_summary`,
+            inNiche: sql`excluded.in_niche`,
             model: sql`excluded.model`,
             promptVersion: sql`excluded.prompt_version`,
             createdAt: sql`excluded.created_at`,
@@ -105,7 +111,16 @@ export async function enrich(ctx: StageContext): Promise<StageResult> {
       p.enrichedNow += out.results.length;
       p.fallback += out.fallbackIds.length;
       p.batches++;
-    });
+    }));
+    const failures = results.filter((r): r is PromiseRejectedResult => r.status === "rejected").map((r) => r.reason);
+    if (failures.some((e) => e instanceof GeminiQuotaExhaustedError)) {
+      // Free daily quota gone for every Flash model: continue with what is enriched instead of failing the run.
+      p.quotaStopped = true;
+      const missing = todo.length - p.enrichedNow;
+      ctx.note(`Gemini free quota exhausted; ${missing} lower-ranked videos were not classified this run.`);
+      return { done: true, payload: p };
+    }
+    if (failures.length) throw failures[0];
   }
   return { done: true, payload: p };
 }

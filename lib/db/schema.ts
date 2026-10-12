@@ -76,6 +76,7 @@ export const enrichments = pgTable("enrichments", {
   entities: text("entities").array().notNull(),
   topicKey: text("topic_key").notNull(),
   topicSummary: text("topic_summary").notNull(),
+  inNiche: boolean("in_niche"),
   model: text("model").notNull(),
   promptVersion: text("prompt_version").notNull(),
   createdAt: ts("created_at").notNull().defaultNow(),

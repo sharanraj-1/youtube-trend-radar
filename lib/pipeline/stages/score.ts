@@ -1,7 +1,8 @@
 import { and, eq, gte, inArray } from "drizzle-orm";
 import { db, schema } from "../../db";
 import { chunk } from "../../retry";
-import { ageHours, engagementRate, outlierMultiple, round, velocity72h, viewsPerHour, type SnapshotPoint } from "../../analysis/metrics";
+import weights from "@/config/weights.json";
+import { ageHours, engagementRate, likelyPromoted, outlierMultiple, round, velocity72h, viewsPerHour, type SnapshotPoint } from "../../analysis/metrics";
 import type { ScoredVideo } from "../../analysis/cluster";
 import type { VideoFormat } from "../../prompts/enrich";
 import type { CollectPayload } from "./collect";
@@ -13,6 +14,8 @@ export interface ScorePayload {
   videos: ScoredVideo[];
   withBaseline: number;
   withVelocity: number;
+  excludedPromoted: { id: string; channel: string; title: string }[];
+  excludedOffNiche: number;
 }
 
 /** Pure arithmetic over stored data (no LLM, no API calls). */
@@ -24,6 +27,8 @@ export async function score(ctx: StageContext): Promise<StageResult> {
   const ids = enriched.selected;
 
   const out: ScoredVideo[] = [];
+  const excludedPromoted: ScorePayload["excludedPromoted"] = [];
+  let excludedOffNiche = 0;
   for (const part of chunk(ids, 200)) {
     const rows = await db()
       .select({ v: schema.videos, e: schema.enrichments, c: schema.channels })
@@ -45,6 +50,14 @@ export async function score(ctx: StageContext): Promise<StageResult> {
       const series = (byVideo.get(v.id) ?? []).sort((a, b) => a.capturedAt.getTime() - b.capturedAt.getTime());
       const latest = series[series.length - 1];
       if (!latest) continue;
+      if (e.inNiche === false) {
+        excludedOffNiche++;
+        continue;
+      }
+      if (likelyPromoted(latest.views, latest.likes, latest.comments, weights.filters.promotedMinViews, weights.filters.promotedMaxEngagement)) {
+        excludedPromoted.push({ id: v.id, channel: v.channelTitle ?? c.title, title: v.title });
+        continue;
+      }
       const age = ageHours(v.publishedAt, now);
       out.push({
         id: v.id,
@@ -76,6 +89,8 @@ export async function score(ctx: StageContext): Promise<StageResult> {
       videos: out,
       withBaseline: out.filter((v) => v.outlierMultiple !== null).length,
       withVelocity: out.filter((v) => v.velocity72h !== null).length,
+      excludedPromoted,
+      excludedOffNiche,
     } satisfies ScorePayload,
   };
 }

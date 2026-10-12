@@ -86,11 +86,21 @@ export function assignLifecycle(i: LifecycleInput, cfg = weights.lifecycle): { l
   return L(i.seenInPrior4Weeks ? "peaking" : "emerging");
 }
 
+/**
+ * Evidence-weighted outlier used for *ranking*: shrinks the median toward 1x when few channels back it
+ * (two viral videos shouldn't beat twelve creators at 4x), then caps it. The brief still displays the raw median.
+ */
+export function rankingOutlier(medianOutlier: number | null, channels: number, w = weights.score): number {
+  const raw = Math.min(w.perVideoOutlierCap, medianOutlier ?? 1);
+  const shrunk = (channels * raw + w.outlierShrinkK * 1) / (channels + w.outlierShrinkK);
+  return Math.min(w.outlierCap, shrunk);
+}
+
 export function scoreCluster(
   p: { channels: number; medianOutlier: number | null; wowGrowth: number; saturated: boolean; alreadyCovered: boolean },
   w = weights.score,
 ): number {
-  const outlier = Math.min(10, p.medianOutlier ?? 1); // cap so one freak video can't dominate
+  const outlier = rankingOutlier(p.medianOutlier, p.channels, w);
   const s =
     w.channels * Math.log(1 + p.channels) +
     w.medianOutlier * outlier +

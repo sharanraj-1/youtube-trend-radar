@@ -162,7 +162,8 @@ export async function runNextStage(runId?: number, opts: { budgetMs?: number } =
     log.info("stage done", { runId: run.id, stage, ms, next });
     return { outcome: "advanced", runId: run.id, stage, next };
   } catch (err) {
-    const message = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+    // Drizzle errors embed the full SQL + params; keep logs/DB readable.
+    const message = (err instanceof Error ? `${err.name}: ${err.message}${err.cause instanceof Error ? ` (cause: ${err.cause.message})` : ""}` : String(err)).slice(0, 1200);
     log.error("stage failed", { runId: run.id, stage, error: message });
     await finishBookkeeping().catch(() => {});
     const attempts = row.attempts + 1;

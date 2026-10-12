@@ -1,0 +1,1 @@
+ALTER TABLE "enrichments" ADD COLUMN "in_niche" boolean;

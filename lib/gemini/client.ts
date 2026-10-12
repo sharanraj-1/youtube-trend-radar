@@ -28,6 +28,30 @@ function ai() {
   return client;
 }
 
+/** Every configured Flash model is out of free daily quota (or persistently unavailable). */
+export class GeminiQuotaExhaustedError extends Error {
+  constructor(public models: string[]) {
+    super(`Gemini free-tier quota exhausted / unavailable for: ${models.join(", ")}`);
+    this.name = "GeminiQuotaExhaustedError";
+  }
+}
+
+/** Models that hit their per-day free quota in this process; skipped until the process recycles. */
+const exhaustedToday = new Set<string>();
+
+export function isDailyQuotaError(err: unknown) {
+  return err instanceof ApiError && err.status === 429 && /PerDay/i.test(err.message);
+}
+
+export function modelChain(): string[] {
+  const primary = env().GEMINI_MODEL;
+  const fallbacks = (process.env.GEMINI_FALLBACK_MODELS ?? "gemini-3.7-flash,gemini-3.6-flash,gemini-3.5-flash")
+    .split(",")
+    .map((m) => m.trim())
+    .filter(Boolean);
+  return [...new Set([primary, ...fallbacks])];
+}
+
 export class GeminiOutputError extends Error {
   constructor(message: string, public raw: string) {
     super(message);
@@ -52,8 +76,35 @@ export interface GenerateJsonOptions<T> {
  * Throws GeminiOutputError when the model returns JSON that fails the zod validator (caller decides to repair).
  */
 export async function generateJson<T>(opts: GenerateJsonOptions<T>): Promise<{ data: T; model: string }> {
-  const model = env().GEMINI_MODEL;
-  const text = await withRetry(
+  const chain = modelChain();
+  let text: string | null = null;
+  let model = chain[0];
+  for (const candidate of chain) {
+    if (exhaustedToday.has(candidate)) continue;
+    model = candidate;
+    try {
+      text = await callModel(candidate, opts);
+      break;
+    } catch (err) {
+      if (isDailyQuotaError(err)) {
+        exhaustedToday.add(candidate);
+        log.warn("gemini daily free quota exhausted; trying next Flash model", { model: candidate });
+        continue;
+      }
+      const timedOut = err instanceof Error && /abort|timeout/i.test(`${err.name} ${err.message}`);
+      if ((err instanceof ApiError && err.status >= 500) || timedOut) {
+        log.warn("gemini model unavailable after retries; trying next Flash model", { model: candidate, error: err instanceof Error ? err.message.slice(0, 120) : String(err) });
+        continue;
+      }
+      throw err;
+    }
+  }
+  if (text === null) throw new GeminiQuotaExhaustedError(chain);
+  return parseOutput(text, opts, model);
+}
+
+async function callModel<T>(model: string, opts: GenerateJsonOptions<T>): Promise<string> {
+  return withRetry(
     async () => {
       await acquire();
       const started = Date.now();
@@ -86,18 +137,21 @@ export async function generateJson<T>(opts: GenerateJsonOptions<T>): Promise<{ d
       }
     },
     {
-      service: `gemini:${opts.label}`,
-      attempts: 4,
+      service: `gemini:${opts.label}:${model}`,
       baseDelayMs: 4000,
       maxDelayMs: 45_000,
+      attempts: 3,
       shouldRetry: (err) => {
+        if (isDailyQuotaError(err)) return false; // retrying only burns more of the day's requests
         if (err instanceof ApiError) return err.status === 429 || err.status >= 500;
         if (err instanceof GeminiOutputError) return false;
         return true; // timeouts / network
       },
     },
   );
+}
 
+function parseOutput<T>(text: string, opts: GenerateJsonOptions<T>, model: string): { data: T; model: string } {
   let json: unknown;
   try {
     json = JSON.parse(text);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assignLifecycle, matchPrior, scoreCluster, wowChannelGrowth, type PriorCluster } from "@/lib/analysis/lifecycle";
+import { assignLifecycle, matchPrior, rankingOutlier, scoreCluster, wowChannelGrowth, type PriorCluster } from "@/lib/analysis/lifecycle";
 
 const base = { hasHistory: true, seenInPrior4Weeks: true, prev: null, recentShare: 0.5, wowGrowth: 0 };
 
@@ -55,9 +55,14 @@ describe("wowChannelGrowth", () => {
 });
 
 describe("scoreCluster", () => {
-  it("implements 1.0*ln(1+ch) + 1.5*outlier + 1.0*growth - saturated - 0.8*covered", () => {
+  it("implements 1.0*ln(1+ch) + 1.5*outlier + 1.0*growth - saturated - 0.8*covered (ranking outlier)", () => {
     const s = scoreCluster({ channels: 4, medianOutlier: 2, wowGrowth: 0.5, saturated: false, alreadyCovered: true });
-    expect(s).toBeCloseTo(Math.log(5) + 3 + 0.5 - 0.8, 3);
+    expect(s).toBeCloseTo(Math.log(5) + 1.5 * ((4 * 2 + 3) / 7) + 0.5 - 0.8, 3);
+  });
+  it("two freak videos no longer swamp broad consensus", () => {
+    expect(rankingOutlier(192, 2)).toBe(5);
+    expect(rankingOutlier(4.2, 12)).toBeCloseTo((12 * 4.2 + 3) / 15, 5);
+    expect(rankingOutlier(null, 3)).toBe(1);
   });
   it("penalises saturation", () => {
     const a = scoreCluster({ channels: 4, medianOutlier: 1, wowGrowth: 0, saturated: false, alreadyCovered: false });
