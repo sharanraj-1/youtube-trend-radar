@@ -85,7 +85,7 @@ For the GitHub Actions backup trigger, add the repo secrets `APP_BASE_URL` and `
 | `GEMINI_MODEL` | – | Default `gemini-3.8-flash`. The spec's `gemini-2.5-flash` is no longer available to new API users. |
 | `GEMINI_FALLBACK_MODELS` | – | Default `gemini-3.7-flash,gemini-3.6-flash,gemini-3.5-flash`. Used when a model's free daily quota runs out or it returns persistent 503s. |
 | `CRON_SECRET` | ✅ | Random, 32+ characters. Vercel Cron sends it as `Authorization: Bearer …`. |
-| `ADMIN_PASSWORD` | ✅ | Password for `/settings` (8+ characters) |
+| `ADMIN_PASSWORD` | ✅ | Password for `/settings` (6+ characters) |
 | `FEEDBACK_SECRET` | ✅ | Random, 32+ characters, used to HMAC-sign feedback links |
 | `APP_BASE_URL` | ✅ in prod | Public URL, used for self-triggering and links in emails |
 | `RESEND_API_KEY`, `RESEND_FROM` | optional | Email delivery (`onboarding@resend.dev` can only send to your own Resend address) |

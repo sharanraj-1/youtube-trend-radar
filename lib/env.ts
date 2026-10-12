@@ -8,7 +8,7 @@ const EnvSchema = z.object({
   GEMINI_API_KEY: z.string().min(10),
   GEMINI_MODEL: z.string().trim().min(1).default("gemini-3.8-flash"),
   CRON_SECRET: z.string().min(32, "CRON_SECRET must be 32+ chars"),
-  ADMIN_PASSWORD: z.string().min(8),
+  ADMIN_PASSWORD: z.string().min(6),
   FEEDBACK_SECRET: z.string().min(32, "FEEDBACK_SECRET must be 32+ chars"),
   APP_BASE_URL: z.string().url().optional().catch(undefined),
   RESEND_API_KEY: optional,
