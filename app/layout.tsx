@@ -29,12 +29,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               <RadarIcon />
               <span>Trend Radar</span>
             </Link>
-            <nav className="-mr-2 flex flex-1 justify-end gap-1 overflow-x-auto text-sm">
-              {NAV.map((n) => (
-                <Link key={n.href} href={n.href} className="whitespace-nowrap rounded-md px-2.5 py-1.5 text-muted hover:bg-surface-2 hover:text-text">
-                  {n.label}
-                </Link>
-              ))}
+            {/* ml-auto (not justify-end) so an overflowing nav scrolls from its first item on narrow phones */}
+            <nav className="-mr-2 flex min-w-0 flex-1 overflow-x-auto text-sm">
+              <div className="ml-auto flex gap-1">
+                {NAV.map((n) => (
+                  <Link key={n.href} href={n.href} className="whitespace-nowrap rounded-md px-2.5 py-1.5 text-muted hover:bg-surface-2 hover:text-text">
+                    {n.label}
+                  </Link>
+                ))}
+              </div>
             </nav>
           </div>
         </header>
