@@ -40,13 +40,14 @@ See [COMPONENTS_MAP.md](COMPONENTS_MAP.md) for the full diagram, data-flow lifec
 
 | Route | Access | Purpose |
 |---|---|---|
-| `/` | public | Latest brief |
+| `/` | public | Latest brief as a guided review: overview → one trend at a time with a decision (film / maybe / not for me) → your plan |
 | `/briefs`, `/briefs/[id]` | public | Archive of past briefs |
 | `/runs` | public | Run log: each stage's status, duration, retries, quota used, Gemini calls, errors |
 | `/architecture` | public | Rendered Components Map and pipeline explanation |
 | `/settings` | `ADMIN_PASSWORD` (httpOnly cookie) | Edit config, resolve handles, "Generate brief now" |
 | `POST /api/runs/manual` | admin cookie or `Bearer CRON_SECRET` | Start a run (globally limited to one per 30 min) |
 | `POST /api/pipeline/step` | `Bearer CRON_SECRET` | Pipeline runner (self-chaining) |
+| `POST /api/runs/resume` | public, idempotent | Continues an *existing* stalled run (used by open browser tabs and the GitHub Actions pump); never starts a run |
 | `GET /api/cron/{snapshot,weekly,watchdog}` | `Bearer CRON_SECRET` | Vercel Cron targets |
 | `GET /api/feedback` | HMAC-signed link | 👍 / 👎 / "Filming this" votes |
 | `GET /api/health` | public | DB, env presence (names only), last run |
@@ -111,7 +112,7 @@ A full run takes about 10–15 minutes across roughly 10–14 short function inv
 
 | Service | Limit | Design |
 |---|---|---|
-| Vercel Hobby | 300 s per function; cron at most daily, fires anywhere within the hour, UTC | One stage per invocation with checkpoints (budget 170 s; long stages resume themselves). The watchdog runs at 09:30 IST so even a late firing lands before 11:00. |
+| Vercel Hobby | 300 s per function; cron at most daily, fires anywhere within the hour, UTC; **self-invocation chains are cut with HTTP 508 (loop protection) after a few hops** | Checkpointed stages (budget 170 s; long stages resume themselves). Quick stages run back-to-back in one invocation to keep chains short. When Vercel blocks the self-trigger, the run is continued from outside Vercel: the GitHub Actions pump (scheduled runs), open browser tabs via `/api/runs/resume` (manual runs), the daily cron, and the watchdog, which drives a stalled run in-process before falling back. The watchdog runs at 09:30 IST so even a late firing lands before 11:00. |
 | YouTube Data API | 10,000 units/day; `search.list` = 100 units | Per-run budget of 6,000 units, charged *before* each call. Cheap 1-unit calls come first. `quotaExceeded` stops everything immediately. A typical run uses about **2,000 units**, mostly 15 searches; the daily snapshot uses about 20–40. |
 | Gemini free tier | Low RPM; **20 requests/day per model** on new keys | 50 videos per call and a 350-video cap, about 7 enrichment calls and 1–2 synthesis calls per run. At most 3 calls run at once, with backoff and jitter on 429/5xx. A per-day 429 is never retried; the client moves to the next Flash model instead. If every model is exhausted, ENRICH continues with what it has and adds a coverage note. Enrichments are cached per video and prompt version. |
 | Neon free | 0.5 GB | 60-day retention on videos and snapshots; stage payloads are compact JSON. |
@@ -169,6 +170,7 @@ The tests cover:
 | – | Language gate and likely-promoted filter (≥ 20K views, < 0.2% engagement) | `relevanceLanguage` only biases search. Paid brand ads showed 7,000× "outliers". |
 | 20 s timeout for every external call | 20 s for YouTube, Resend and Telegram; 120 s for Gemini | Structured generation for 50 videos can take 30–90 s under load. |
 | Video search `relevanceLanguage` | Alternates `en` / `hi` per keyword | The API takes one language per call. |
+| Each invocation runs exactly one stage, then `after()` triggers the next | Quick stages run back-to-back while an invocation is under 60 s old; continuation also comes from external callers | In production, Vercel answered the 6th self-trigger with **HTTP 508 INFINITE_LOOP_DETECTED** and the run stalled. The exact threshold isn't documented. |
 
 ## Known limitations
 
@@ -177,4 +179,5 @@ The tests cover:
 - **Gemini free quota is small.** A day with many manual runs can exhaust it. ENRICH then degrades to the already-enriched subset and says so in the coverage note.
 - **Shared database.** Local development and production use the same Neon database unless you create a Neon branch for development.
 - **Email is limited without a domain.** Without a verified domain, Resend's test sender can only deliver to the account owner's address.
+- **Manual runs need a nudge.** A manual run started from Admin continues past Vercel's loop limit only while someone has the site open (or the daily cron runs). Scheduled Sunday runs are pumped by GitHub Actions.
 - **Auto-deploy isn't connected.** Production is deployed with the Vercel CLI; connect the GitHub repo in the Vercel dashboard to deploy on every push.

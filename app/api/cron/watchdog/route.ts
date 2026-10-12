@@ -3,7 +3,7 @@ import { isCronAuthorized } from "@/lib/auth";
 import { watchdogJob } from "@/lib/jobs";
 import { log } from "@/lib/log";
 
-export const maxDuration = 60;
+export const maxDuration = 300; // may drive a stalled run for up to ~4 min before falling back
 
 /** Sunday 04:00 UTC = 09:30 IST (fires within the hour on Hobby, so always before the 11:00 IST deadline). */
 export async function GET(req: Request) {

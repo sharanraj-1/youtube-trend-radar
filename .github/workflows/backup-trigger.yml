@@ -1,16 +1,19 @@
-name: Backup weekly trigger
+name: Weekly trigger (backup) + pipeline pump
 
-# Same time as the Vercel cron (Sat 23:30 UTC = Sun 05:00 IST). The run lock makes duplicates harmless.
+# Same time as the Vercel cron (Sat 23:30 UTC = Sun 05:00 IST). Duplicate triggers are harmless (run lock).
+# Vercel's loop protection (HTTP 508) cuts long self-invocation chains, so after triggering, this job keeps
+# nudging the pipeline from outside Vercel until the run finishes (public repos: Actions minutes are free).
 on:
   schedule:
     - cron: "30 23 * * 6"
   workflow_dispatch: {}
 
 jobs:
-  trigger:
+  trigger-and-pump:
     runs-on: ubuntu-latest
+    timeout-minutes: 50
     steps:
-      - name: Call weekly endpoint
+      - name: Trigger weekly run and keep it moving
         env:
           APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
@@ -22,3 +25,16 @@ jobs:
             -H "Authorization: Bearer $CRON_SECRET" "$APP_BASE_URL/api/cron/weekly")
           cat response.json; echo
           if [ "$status" -ge 400 ]; then echo "Trigger failed with HTTP $status"; exit 1; fi
+          run_id=$(jq -r '.runId' response.json)
+          echo "Pumping run #$run_id"
+          for i in $(seq 1 60); do
+            sleep 45
+            curl -sS -o /dev/null --max-time 30 -X POST "$APP_BASE_URL/api/runs/resume" || true
+            state=$(curl -sS --max-time 30 "$APP_BASE_URL/api/health" | jq -r '"\(.lastRun.id) \(.lastRun.status) \(.lastRun.stage)"' || echo "? ? ?")
+            echo "$(date -u +%H:%M:%S) $state"
+            set -- $state
+            if [ "$1" = "$run_id" ] && { [ "$2" = "done" ] || [ "$2" = "degraded" ] || [ "$2" = "failed" ]; }; then
+              echo "Run #$run_id finished: $2"; [ "$2" = "failed" ] && exit 1; exit 0
+            fi
+          done
+          echo "Run still in progress after the pump window; the watchdog will handle it."

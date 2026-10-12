@@ -105,7 +105,7 @@ flowchart TB
 | Component | Role |
 |---|---|
 | **Vercel Cron** | Three UTC schedules (Hobby allows each at most daily, firing somewhere within the hour): `snapshot` daily 21:30 (03:00 IST), `weekly` Sat 23:30 (Sun 05:00 IST), `watchdog` Sun 04:00 (09:30–10:29 IST). Sends `Authorization: Bearer CRON_SECRET`. |
-| **GitHub Actions** | `.github/workflows/backup-trigger.yml` calls `/api/cron/weekly` at the same time as the Vercel cron. `weeklyJob` is idempotent: no second run is created within 12 h, and only one run can be active. |
+| **GitHub Actions** | `.github/workflows/backup-trigger.yml` calls `/api/cron/weekly` at the same time as the Vercel cron, then pumps `/api/runs/resume` every 45 s until the run finishes. `weeklyJob` is idempotent: no second run is created within 12 h, and only one run can be active. |
 | **Pipeline runner** | `POST /api/pipeline/step` returns 202, then runs one stage (or one checkpointed slice of one) inside `after()` and triggers itself for the next. Stages are claimed with a conditional `UPDATE`, so duplicate invocations can't run the same stage. |
 | **COLLECT** | Resolves handles (`channels.list?forHandle`) → peer uploads (`playlistItems`) → `mostPopular` chart (IN/28, optional) → ≤15 `search.list` → `videos.list` hydrate in batches of 50 → `channels.list` hydrate, drops channels under 5K subscribers or blocked → per-channel median of the last 15 uploads (cached 7 d) → top comments for the 60 biggest outliers → snapshots. |
 | **ENRICH** | Gemini Flash, 50 videos per call (max 350 per run): `format`, canonical `entities` (Hindi/Hinglish normalised), `topic_key`, `topic_summary`. Output is zod-validated, with one repair retry before falling back to `format: "other"`. Enrichments are cached per video across runs. |
@@ -152,5 +152,6 @@ flowchart TB
 | Prompt injection in titles/comments | framing | The content is sent only inside delimited JSON data blocks, with closing delimiters neutralised. Output IDs outside the batch are ignored. |
 | Email / Telegram failure | result object | Recorded in `briefs.delivery`; the run still succeeds. |
 | No brief by Sunday morning | watchdog cron | Publishes a **FALLBACK** brief (last week's non-saturated clusters with a red banner), marks the stuck run failed and alerts Telegram. |
+| Self-trigger blocked by Vercel loop protection (HTTP 508) | `triggerStep` sees 508 | Logged as a pause, not an error. Quick stages already run back-to-back in one invocation. The run is continued by the GitHub Actions pump, by any open browser tab via `POST /api/runs/resume` (continues stalled runs only), by the daily cron, or by the watchdog driving it in-process. |
 | Duplicate triggers | run lock + 12 h weekly dedupe + stage claim | No-op. |
 | Missing/invalid env vars | zod at boot (`instrumentation.ts`) and on first use | Logged by name only; `/api/health` reports which are missing. |

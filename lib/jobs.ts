@@ -5,7 +5,7 @@ import { log } from "./log";
 import { chunk, mapLimit } from "./retry";
 import { YouTubeClient } from "./youtube/client";
 import { QuotaExceededError, QuotaManager } from "./youtube/quota";
-import { createRun, getActiveRun } from "./pipeline/runner";
+import { createRun, driveRun, getActiveRun } from "./pipeline/runner";
 import { alertTelegram } from "./notify";
 import { renderBriefHtml } from "./render/email";
 import type { BriefJson } from "./render/types";
@@ -115,7 +115,19 @@ export async function watchdogJob() {
     .limit(1);
   if (thisWeek) return { action: "none", briefId: thisWeek.id, status: thisWeek.status };
 
-  const active = await getActiveRun();
+  let active = await getActiveRun();
+  if (active) {
+    // Last chance before the deadline: push the run forward in-process (no self-invocation hops).
+    const outcome = await driveRun(active.id, 240_000);
+    log.warn("watchdog drove active run", { runId: active.id, outcome: outcome.outcome });
+    const [done] = await db()
+      .select({ id: schema.briefs.id, status: schema.briefs.status })
+      .from(schema.briefs)
+      .where(and(eq(schema.briefs.runId, active.id), inArray(schema.briefs.status, ["complete", "degraded"])))
+      .limit(1);
+    if (done) return { action: "completed-by-watchdog", briefId: done.id, status: done.status };
+    active = await getActiveRun();
+  }
   if (active) {
     await db()
       .update(schema.runs)

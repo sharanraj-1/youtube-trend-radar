@@ -238,7 +238,11 @@ export async function triggerStep(runId: number, delayMs = 0) {
       signal: AbortSignal.timeout(20_000),
       cache: "no-store",
     });
-    log.info("triggered next step", { runId, status: res.status });
+    if (res.status === 508) {
+      // Vercel's loop protection stops long self-invocation chains. Not an error: an external caller
+      // (GitHub Actions pump, an open browser tab via /api/runs/resume, or the daily cron) continues the run.
+      log.warn("self-trigger blocked by Vercel loop protection; waiting for an external resume", { runId });
+    } else log.info("triggered next step", { runId, status: res.status });
   } catch (err) {
     log.error("failed to trigger next step (watchdog/cron will resume)", { runId, error: err instanceof Error ? err.message : String(err) });
   }
@@ -253,8 +257,50 @@ export function shouldContinue(o: StepOutcome): o is Extract<StepOutcome, { stag
 }
 
 /** Run one step, then chain the next via HTTP (used inside after()). */
+/** Keep running stages in this invocation while it is still young; quick stages (SCORE..DELIVER) then
+ *  finish without extra HTTP hops, which keeps self-invocation chains short. */
+const IN_PROCESS_WINDOW_MS = 60_000;
+
+/** Run one or more steps, then chain the next via HTTP (used inside after()). */
 export async function stepAndChain(runId?: number) {
-  const outcome = await runNextStage(runId);
+  const started = Date.now();
+  let outcome = await runNextStage(runId);
+  while (outcome.outcome === "advanced" && Date.now() - started < IN_PROCESS_WINDOW_MS) {
+    outcome = await runNextStage(outcome.runId);
+  }
   if (shouldContinue(outcome)) await triggerStep(outcome.runId, outcome.outcome === "failed" ? 10_000 : 0);
   return outcome;
+}
+
+/** Drive a run in-process (no HTTP hops) until it finishes or the time budget runs out. Used by the watchdog. */
+export async function driveRun(runId: number, budgetMs: number): Promise<StepOutcome> {
+  const started = Date.now();
+  let outcome: StepOutcome = await runNextStage(runId, { budgetMs: Math.min(170_000, budgetMs) });
+  while (shouldContinue(outcome) && Date.now() - started < budgetMs - 20_000) {
+    if (outcome.outcome === "failed") await new Promise((r) => setTimeout(r, 5_000));
+    const left = budgetMs - (Date.now() - started);
+    outcome = await runNextStage(runId, { budgetMs: Math.min(170_000, Math.max(30_000, left - 30_000)) });
+  }
+  return outcome;
+}
+
+/** A run whose current stage has had no progress for this long (and is not mid-execution) may be resumed. */
+export const RESUME_AFTER_MS = 40_000;
+
+/**
+ * Safe, idempotent resume for external callers: only continues an existing active run that is stalled.
+ * It can never start a run, so it is fine to expose publicly (the stage claim makes duplicates harmless).
+ */
+export async function resumeIfStalled(): Promise<{ resumed: boolean; runId?: number; stage?: string; reason: string }> {
+  const run = await getActiveRun();
+  if (!run) return { resumed: false, reason: "no active run" };
+  const [row] = await db()
+    .select()
+    .from(schema.stageOutputs)
+    .where(and(eq(schema.stageOutputs.runId, run.id), eq(schema.stageOutputs.stage, run.currentStage)));
+  const last = row?.updatedAt?.getTime() ?? run.startedAt.getTime();
+  const idle = Date.now() - last;
+  if (row?.status === "running" && idle < STALE_MS) return { resumed: false, runId: run.id, stage: run.currentStage, reason: "stage is running" };
+  if (idle < RESUME_AFTER_MS) return { resumed: false, runId: run.id, stage: run.currentStage, reason: "recently active" };
+  return { resumed: true, runId: run.id, stage: run.currentStage, reason: `idle ${Math.round(idle / 1000)}s` };
 }

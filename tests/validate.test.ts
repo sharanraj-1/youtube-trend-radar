@@ -94,3 +94,25 @@ describe("finalizeNarrative (after the single repair attempt)", () => {
     expect(stripNumberSentences("The iPhone 17 is everywhere. It grew 80%.", cluster.allowedNumbers)).toBe("The iPhone 17 is everywhere.");
   });
 });
+
+describe("regression: decimals inside product names (live run #2)", () => {
+  const vc: ValidationCluster = {
+    id: "68",
+    label: "Claude",
+    videoIds: ["a", "b", "c"],
+    allowedNumbers: allowedNumbersFrom({ distinct_channels: 31 }, ["Claude Haiku 5.5", "Claude Code"]),
+  };
+  it("keeps a sentence mentioning 'Claude Haiku 5.5'", () => {
+    const why = "Discussions surrounding Claude Haiku 5.5 and Claude Code are peaking across major channels, presenting an ideal moment.";
+    expect(stripNumberSentences(why, vc.allowedNumbers)).toBe(why);
+    const res = finalizeNarrative(
+      { parsed: { ...good, cluster_id: "68", why_now: why, evidence_video_ids: ["a", "b"], suggested_angles: ["Try Claude Haiku 5.5 for Indian dev workflows.", "Avoid context bloat in Claude Code."], confidence: "high" } },
+      vc,
+      new Set(),
+    );
+    expect(res.mode).toBe("full");
+  });
+  it("still strips a sentence with an invented decimal", () => {
+    expect(stripNumberSentences("Claude Haiku 5.5 is out. Views rose 3.2x this week.", vc.allowedNumbers)).toBe("Claude Haiku 5.5 is out.");
+  });
+});

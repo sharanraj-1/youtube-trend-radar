@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
 import { EmptyState, ErrorState, LoadingBlock } from "@/components/States";
+import { RunPinger } from "@/components/RunPinger";
 import { listRuns } from "@/lib/queries";
 import { istDateTime } from "@/lib/render/format";
 import { minutes, PHASES, phaseIndex, RUN_STATUS_PLAIN } from "@/lib/render/guide";
@@ -47,8 +48,10 @@ async function Runs() {
   if (runs.length === 0) return <EmptyState title="Nothing has run yet">The first run is scheduled for Sunday 5:00 AM IST.</EmptyState>;
 
   const firstBriefRun = runs.find((r) => r.kind !== "snapshot")?.id;
+  const anyActive = runs.some((r) => r.kind !== "snapshot" && (r.status === "running" || r.status === "pending"));
   return (
     <ol className="divide-y divide-border border-y border-border">
+      {anyActive && <RunPinger />}
       {runs.map((r) => {
         const s = RUN_STATUS_PLAIN[r.status] ?? { label: r.status, tone: "text-muted" };
         const took = r.finishedAt ? r.finishedAt.getTime() - r.startedAt.getTime() : null;

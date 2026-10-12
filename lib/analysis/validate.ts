@@ -96,10 +96,11 @@ export function validateSynthesis(rawClusters: Record<string, unknown>[], cluste
 
 /** Removes sentences that contain disallowed numbers. */
 export function stripNumberSentences(text: string, allowed: Set<string>): string {
-  const sentences = text.match(/[^.!?]+[.!?]*/g) ?? [text];
+  // Split only at sentence punctuation followed by whitespace, so "Claude Haiku 5.5" stays one token.
+  const sentences = text.trim().split(/(?<=[.!?])\s+/);
   return sentences
     .filter((s) => disallowedNumbers(s, allowed).length === 0)
-    .join("")
+    .join(" ")
     .trim();
 }
 

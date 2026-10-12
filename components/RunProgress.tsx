@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { minutesSince, PHASES, phaseIndex } from "@/lib/render/guide";
+import { RunPinger } from "./RunPinger";
 
 /** Plain-language progress for a brief being generated right now. */
 export function RunProgress({ stage, startedAt, compact = false }: { stage: string; startedAt: Date; compact?: boolean }) {
@@ -22,8 +23,9 @@ export function RunProgress({ stage, startedAt, compact = false }: { stage: stri
           ))}
         </ol>
       )}
+      <RunPinger />
       <p className="mt-3 text-xs text-muted">
-        Refresh this page to see progress, or follow it on the{" "}
+        This page updates by itself, and keeping it open helps the brief finish. Details are on the{" "}
         <Link href="/runs" className="underline">
           run log
         </Link>
