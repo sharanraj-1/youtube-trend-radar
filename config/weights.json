@@ -1,0 +1,38 @@
+{
+  "score": {
+    "channels": 1.0,
+    "medianOutlier": 1.5,
+    "wowGrowth": 1.0,
+    "saturatedPenalty": 1.0,
+    "alreadyCoveredPenalty": 0.8
+  },
+  "cluster": {
+    "mergeCosine": 0.35,
+    "matchPrevCosine": 0.5,
+    "minDistinctChannels": 2,
+    "maxVideosPerChannelInStats": 2
+  },
+  "lifecycle": {
+    "emergingMaxChannels": 5,
+    "emergingMinOutlier": 1.5,
+    "risingMinGrowth": 0.5,
+    "risingMinOutlier": 1.2,
+    "peakingMinChannels": 6,
+    "saturatedMaxOutlier": 0.8
+  },
+  "brief": {
+    "topClusters": 5,
+    "skipClusters": 5
+  },
+  "budget": {
+    "youtubeUnitsPerRun": 6000,
+    "maxVideosToEnrich": 480,
+    "enrichBatchSize": 40,
+    "commentVideos": 60,
+    "stageTimeBudgetMs": 170000
+  },
+  "genericEntities": [
+    "AI", "Artificial Intelligence", "YouTube", "India", "Android", "Smartphone", "Smartphones",
+    "Laptop", "Laptops", "Apps", "App", "Technology", "Tech", "Internet", "Software", "Mobile", "Phone"
+  ]
+}

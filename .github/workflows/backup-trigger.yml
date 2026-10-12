@@ -1,0 +1,24 @@
+name: Backup weekly trigger
+
+# Same time as the Vercel cron (Sat 23:30 UTC = Sun 05:00 IST). The run lock makes duplicates harmless.
+on:
+  schedule:
+    - cron: "30 23 * * 6"
+  workflow_dispatch: {}
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call weekly endpoint
+        env:
+          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$APP_BASE_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "APP_BASE_URL / CRON_SECRET secrets not set; skipping."; exit 0
+          fi
+          status=$(curl -sS -o response.json -w "%{http_code}" --max-time 60 \
+            -H "Authorization: Bearer $CRON_SECRET" "$APP_BASE_URL/api/cron/weekly")
+          cat response.json; echo
+          if [ "$status" -ge 400 ]; then echo "Trigger failed with HTTP $status"; exit 1; fi

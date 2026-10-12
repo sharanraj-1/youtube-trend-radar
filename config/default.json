@@ -1,0 +1,16 @@
+{
+  "regionCode": "IN",
+  "relevanceLanguages": ["en", "hi"],
+  "youtubeCategoryIds": ["28"],
+  "seedKeywords": ["AI tools", "ChatGPT", "Gemini AI", "Claude AI", "Cursor AI",
+                   "productivity apps", "best apps", "tech review", "AI coding",
+                   "Notion AI", "Perplexity", "AI video generator", "smartphone review",
+                   "laptop review", "AI agents"],
+  "peerChannelHandles": ["@TechnicalGuruji", "@TechBurner", "@TrakinTech",
+                         "@GeekyRanjit", "@beebomco", "@C4ETech"],
+  "ownChannelHandle": "",
+  "lookbackDays": 7,
+  "minChannelSubscribers": 5000,
+  "maxSearchQueriesPerRun": 15,
+  "briefEmail": ""
+}
