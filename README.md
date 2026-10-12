@@ -177,7 +177,7 @@ The tests cover:
 - **Lifecycle confidence is low for the first weeks.** Rising, peaking and saturated need week-over-week history, and velocity needs at least two daily snapshots.
 - **YouTube search is noisy and global.** `regionCode=IN` biases results but doesn't restrict them, so some clusters include non-Indian creators.
 - **Gemini free quota is small.** A day with many manual runs can exhaust it. ENRICH then degrades to the already-enriched subset and says so in the coverage note.
-- **Shared database.** Local development and production use the same Neon database unless you create a Neon branch for development.
+- **Shared database.** Local development and production use the same Neon database (on the `sharan-raj-2043` Vercel account) unless you create a Neon branch for development. `scripts/copy-db.ts` copies all data between databases with per-table verification.
 - **Email is limited without a domain.** Without a verified domain, Resend's test sender can only deliver to the account owner's address.
 - **Manual runs need a nudge.** A manual run started from Admin continues past Vercel's loop limit only while someone has the site open (or the daily cron runs). Scheduled Sunday runs are pumped by GitHub Actions.
 - **Auto-deploy:** the GitHub repo is connected to the Vercel project, so every push to `main` deploys to production.
