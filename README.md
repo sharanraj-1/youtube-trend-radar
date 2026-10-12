@@ -1,6 +1,6 @@
 # YouTube Trend Radar
 
-**Live:** https://youtube-trend-radar-pi.vercel.app · **Run log:** [/runs](https://youtube-trend-radar-pi.vercel.app/runs) · **How it works:** [/architecture](https://youtube-trend-radar-pi.vercel.app/architecture) · **Components Map:** [COMPONENTS_MAP.md](COMPONENTS_MAP.md)
+**Live:** https://youtube-trend-radar-nine.vercel.app · **Run log:** [/runs](https://youtube-trend-radar-nine.vercel.app/runs) · **How it works:** [/architecture](https://youtube-trend-radar-nine.vercel.app/architecture) · **Components Map:** [COMPONENTS_MAP.md](COMPONENTS_MAP.md)
 
 Ishaan runs a tech YouTube channel (AI tools, productivity apps, tech reviews) for Indian audiences. Every Sunday he spent about 90 minutes browsing YouTube to decide what to film. Trend Radar replaces that with an automated **Sunday Content Strategy Brief**, ready before 11:00 IST: 3–5 trend clusters in his niche, each with:
 
@@ -180,4 +180,4 @@ The tests cover:
 - **Shared database.** Local development and production use the same Neon database unless you create a Neon branch for development.
 - **Email is limited without a domain.** Without a verified domain, Resend's test sender can only deliver to the account owner's address.
 - **Manual runs need a nudge.** A manual run started from Admin continues past Vercel's loop limit only while someone has the site open (or the daily cron runs). Scheduled Sunday runs are pumped by GitHub Actions.
-- **Auto-deploy isn't connected.** Production is deployed with the Vercel CLI; connect the GitHub repo in the Vercel dashboard to deploy on every push.
+- **Auto-deploy:** the GitHub repo is connected to the Vercel project, so every push to `main` deploys to production.
