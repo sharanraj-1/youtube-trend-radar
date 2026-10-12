@@ -1,11 +1,10 @@
 import { desc, inArray, sql } from "drizzle-orm";
-import { NextResponse } from "next/server";
+import { connection, NextResponse } from "next/server";
 import { db, schema } from "@/lib/db";
 import { envReport } from "@/lib/env";
 
-export const runtime = "nodejs";
-
 export async function GET() {
+  await connection(); // always evaluate at request time, never at build
   const envs = envReport();
   let dbOk = false;
   let dbError: string | null = null;

@@ -3,7 +3,6 @@ import { isCronAuthorized } from "@/lib/auth";
 import { stepAndChain } from "@/lib/pipeline/runner";
 import { log } from "@/lib/log";
 
-export const runtime = "nodejs";
 export const maxDuration = 300;
 
 /**

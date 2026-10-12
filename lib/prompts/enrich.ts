@@ -38,7 +38,7 @@ export interface EnrichInput {
 
 /** Escapes delimiter-like sequences so data cannot close the untrusted block. */
 export function neutralize(s: string) {
-  return s.replace(/<\/?\s*untrusted_video_data\s*>/gi, "[tag removed]").replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, " ");
+  return s.replace(/<\/?\s*untrusted_[a-z_]*\s*>/gi, "[tag removed]").replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, " ");
 }
 
 export function buildEnrichPrompt(items: EnrichInput[], repairNote?: string) {

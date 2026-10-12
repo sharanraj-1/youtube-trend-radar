@@ -3,8 +3,6 @@ import { db, schema } from "@/lib/db";
 import { verifyFeedback } from "@/lib/feedback";
 import { log } from "@/lib/log";
 
-export const runtime = "nodejs";
-
 const MESSAGES: Record<string, string> = {
   up: "Thanks! We'll weigh similar trends higher.",
   down: "Got it — noted as not useful.",

@@ -4,7 +4,6 @@ import { manualRun, RateLimitedError } from "@/lib/jobs";
 import { stepAndChain } from "@/lib/pipeline/runner";
 import { log } from "@/lib/log";
 
-export const runtime = "nodejs";
 export const maxDuration = 300;
 
 /** Admin only (session cookie, or CRON_SECRET bearer for scripted triggers). One run per 30 min globally. */

@@ -3,7 +3,6 @@ import { isCronAuthorized } from "@/lib/auth";
 import { watchdogJob } from "@/lib/jobs";
 import { log } from "@/lib/log";
 
-export const runtime = "nodejs";
 export const maxDuration = 60;
 
 /** Sunday 04:00 UTC = 09:30 IST (fires within the hour on Hobby, so always before the 11:00 IST deadline). */
