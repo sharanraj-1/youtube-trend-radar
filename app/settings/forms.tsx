@@ -6,16 +6,18 @@ import type { AppConfig } from "@/lib/settings";
 import { generateNow, login, resolveHandlesAction, saveSettings, sendTestAlert, sendTestEmail, type ActionState } from "./actions";
 
 const input =
-  "w-full rounded-md border border-border bg-surface px-3 py-2.5 text-[0.95rem] outline-none transition-colors placeholder:text-faint focus:border-text";
-const primary = "inline-flex items-center justify-center rounded-md bg-accent px-5 py-2.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60";
+  "w-full rounded-xl border border-border bg-surface-sunk px-3.5 py-2.5 text-[0.95rem] outline-none transition placeholder:text-faint hover:border-border-strong focus:border-accent focus:ring-4 focus:ring-accent/15";
+const primary = "btn-primary inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold disabled:opacity-60";
 const secondary =
-  "inline-flex items-center justify-center rounded-md border border-border bg-surface px-4 py-2 text-sm font-medium hover:border-text/50 disabled:opacity-60";
+  "inline-flex items-center justify-center gap-2 rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium transition hover:border-border-strong disabled:opacity-50";
 
 function Result({ state }: { state: ActionState }) {
   if (!state.message) return null;
   return (
-    <div role="status" className={`border-l-2 pl-3 text-sm ${state.ok ? "border-ok" : "border-accent"}`}>
-      <p className={state.ok ? "text-text" : "text-accent"}>{state.message}</p>
+    <div role="status" className="swap-in flex gap-3 rounded-2xl border border-border bg-surface px-4 py-3 text-sm">
+      <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${state.ok ? "bg-ok" : "bg-danger"}`} aria-hidden />
+      <div>
+      <p className="text-text">{state.message}</p>
       {state.details && state.details.length > 0 && (
         <ul className="mt-1 space-y-0.5 text-xs text-muted">
           {state.details.map((d) => (
@@ -23,18 +25,19 @@ function Result({ state }: { state: ActionState }) {
           ))}
         </ul>
       )}
+      </div>
     </div>
   );
 }
 
 function Step({ n, title, intro, children }: { n: number; title: string; intro: string; children: React.ReactNode }) {
   return (
-    <section className="grid gap-4 border-t border-rule pt-8 sm:grid-cols-[2.5rem_1fr]">
-      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-text text-sm font-semibold text-bg">{n}</span>
+    <section className="glass reveal grid grid-cols-1 gap-5 rounded-[1.75rem] p-5 sm:grid-cols-[3rem_1fr] sm:p-7">
+      <span className="btn-primary grid h-10 w-10 place-items-center rounded-full text-sm font-semibold">{n}</span>
       <div className="space-y-5">
         <div>
-          <h2 className="font-serif text-2xl">{title}</h2>
-          <p className="mt-1 max-w-xl text-sm leading-relaxed text-muted">{intro}</p>
+          <h2 className="font-serif text-3xl tracking-tight">{title}</h2>
+          <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted">{intro}</p>
         </div>
         {children}
       </div>
@@ -55,9 +58,9 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 export function LoginForm() {
   const [state, action, pending] = useActionState(login, {} as ActionState);
   return (
-    <div className="mx-auto max-w-sm space-y-6 py-6">
+    <div className="glass mx-auto max-w-md space-y-6 rounded-[2rem] p-8">
       <div className="space-y-2">
-        <h1 className="font-serif text-3xl font-medium">Admin sign-in</h1>
+        <h1 className="font-serif text-4xl tracking-tight">Admin sign-in</h1>
         <p className="text-sm leading-relaxed text-muted">
           This area is for the channel owner: make a brief on demand and choose what to track. Anyone can{" "}
           <Link href="/" className="underline">
@@ -111,7 +114,7 @@ export function SettingsForm({ config, emailReady, telegramReady }: { config: Ap
   const [tg, tgAction, tgSending] = useActionState(sendTestAlert, {} as ActionState);
   const [check, checkAction, checking] = useActionState(resolveHandlesAction, {} as ActionState);
   return (
-    <form action={action} className="space-y-10">
+    <form action={action} className="space-y-6">
       <Step
         n={2}
         title="Choose what to track"
@@ -173,10 +176,12 @@ export function SettingsForm({ config, emailReady, telegramReady }: { config: Ap
         </div>
       </Step>
 
-      <details className="group border-t border-rule pt-6">
-        <summary className="cursor-pointer list-none text-sm font-medium text-muted hover:text-text">
-          <span className="group-open:hidden">▸</span>
-          <span className="hidden group-open:inline">▾</span> Advanced settings (you can usually leave these alone)
+      <details className="group glass rounded-[1.75rem] p-5 sm:p-7">
+        <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-medium">
+          <span>
+            Advanced settings <span className="font-normal text-muted">· you can usually leave these alone</span>
+          </span>
+          <span className="text-faint transition-transform group-open:rotate-90">›</span>
         </summary>
         <div className="mt-6 grid gap-5 sm:grid-cols-2">
           <Field label="Country" hint="Two-letter code. IN = India.">
@@ -205,14 +210,14 @@ export function SettingsForm({ config, emailReady, telegramReady }: { config: Ap
         </div>
       </details>
 
-      <div className="sticky bottom-0 -mx-5 flex flex-wrap items-center gap-4 border-t border-border bg-bg/95 px-5 py-4 backdrop-blur sm:-mx-6 sm:px-6">
+      <div className="glass-strong sticky bottom-4 z-20 flex w-fit max-w-full flex-wrap items-center gap-4 rounded-full py-2 pl-2 pr-5">
         <button className={primary} disabled={pending}>
           {pending ? "Saving…" : "Save changes"}
         </button>
         <span className="text-xs text-muted">Changes apply from the next brief.</span>
-        <div className="w-full">
-          <Result state={state} />
-        </div>
+      </div>
+      <div className="-mt-6">
+        <Result state={state} />
       </div>
     </form>
   );

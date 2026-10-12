@@ -26,7 +26,7 @@ export function Mermaid({ chart }: { chart: string }) {
   }, [chart, id]);
 
   if (failed)
-    return <pre className="overflow-x-auto rounded-xl border border-border bg-surface p-4 text-xs">{chart}</pre>;
-  if (!svg) return <div className="h-96 animate-pulse rounded-xl bg-surface-2" aria-busy />;
-  return <div className="overflow-x-auto rounded-xl border border-border bg-surface p-4 [&_svg]:mx-auto [&_svg]:h-auto [&_svg]:max-w-full" dangerouslySetInnerHTML={{ __html: svg }} />;
+    return <pre className="overflow-x-auto rounded-2xl bg-surface-sunk p-4 text-xs">{chart}</pre>;
+  if (!svg) return <div className="skeleton h-96 rounded-2xl" aria-busy />;
+  return <div className="overflow-x-auto rounded-2xl p-2 [&_svg]:mx-auto [&_svg]:h-auto [&_svg]:max-w-full" dangerouslySetInnerHTML={{ __html: svg }} />;
 }

@@ -2,30 +2,34 @@
 
 export const LIFECYCLE_ORDER = ["emerging", "rising", "peaking", "saturated"] as const;
 
-export const LIFECYCLE_GUIDE: Record<string, { label: string; short: string; advice: string; tone: string }> = {
+export const LIFECYCLE_GUIDE: Record<string, { label: string; short: string; advice: string; tone: string; dot: string }> = {
   emerging: {
     label: "Emerging",
     short: "Early",
     advice: "Only a few creators have covered this and their videos are doing unusually well. A good chance to be early.",
     tone: "text-emerging",
+    dot: "bg-emerging",
   },
   rising: {
     label: "Rising",
     short: "Picking up",
     advice: "More creators are joining in and views are strong. A good week to film.",
     tone: "text-rising",
+    dot: "bg-rising",
   },
   peaking: {
     label: "Peaking",
     short: "Busy",
     advice: "Lots of creators have already covered this. Worth filming only if you have a fresh angle.",
     tone: "text-peaking",
+    dot: "bg-peaking",
   },
   saturated: {
     label: "Saturated",
     short: "Crowded",
     advice: "Crowded and views are fading. Probably skip unless you have something genuinely new.",
     tone: "text-saturated",
+    dot: "bg-saturated",
   },
 };
 

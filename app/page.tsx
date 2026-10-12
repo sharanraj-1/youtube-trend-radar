@@ -27,7 +27,7 @@ async function LatestBrief() {
     return <ErrorState what="this week's brief" />;
   }
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       {running && <RunProgress stage={running.currentStage} startedAt={running.startedAt} compact={!!brief} />}
       {brief ? (
         <BriefFlow brief={brief.json as BriefJson} briefId={brief.id} createdAt={brief.createdAt.toISOString()} />

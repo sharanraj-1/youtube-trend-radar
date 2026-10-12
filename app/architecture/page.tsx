@@ -24,87 +24,98 @@ const TIMELINE: [string, string, string][] = [
 
 export default function ArchitecturePage() {
   return (
-    <div className="space-y-14">
-      <header className="space-y-3">
-        <h1 className="font-serif text-4xl font-medium tracking-tight">How it works</h1>
+    <div className="space-y-20">
+      <header className="rise max-w-3xl space-y-4">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-faint">How it works</p>
+        <h1 className="font-serif text-5xl leading-[1] tracking-tight sm:text-6xl lg:text-7xl">
+          Hours of scrolling, <em className="text-gradient">done for you</em> by 11 AM
+        </h1>
         <p className="max-w-2xl text-lg leading-relaxed text-muted">
-          Trend Radar does the Sunday research for you: hours of scrolling YouTube become a 10-minute read. It recommends; you decide what to film.
+          Every Sunday, Trend Radar reads the week on YouTube and turns it into a 10-minute review. It recommends; you decide what to film.
         </p>
       </header>
 
-      <section aria-labelledby="sunday">
-        <h2 id="sunday" className="mb-6 text-xs font-semibold uppercase tracking-[0.12em] text-muted">
+      <section aria-labelledby="sunday" className="space-y-6">
+        <h2 id="sunday" className="text-[11px] font-semibold uppercase tracking-[0.16em] text-faint">
           What happens every Sunday
         </h2>
-        <ol className="relative ml-3 space-y-8 border-l border-rule pl-7">
+        <ol className="relative grid grid-cols-1 gap-4 lg:grid-cols-5">
+          <span aria-hidden className="absolute left-0 right-0 top-[2.15rem] hidden h-px bg-gradient-to-r from-accent via-accent-2 to-transparent lg:block" />
           {TIMELINE.map(([time, title, text], i) => (
-            <li key={title} className="relative">
-              <span className="absolute -left-[2.5rem] flex h-6 w-6 items-center justify-center rounded-full bg-text text-xs font-semibold text-bg ring-4 ring-bg">
-                {i + 1}
-              </span>
-              <p className="text-xs font-medium uppercase tracking-wide text-accent">{time}</p>
-              <h3 className="mt-1 font-serif text-xl">{title}</h3>
-              <p className="mt-1 max-w-xl leading-relaxed text-muted">{text}</p>
+            <li key={title} className="reveal relative">
+              <div className="glass h-full rounded-3xl p-5">
+                <div className="mb-4 flex items-center gap-3">
+                  <span className="btn-primary grid h-9 w-9 place-items-center rounded-full text-sm font-semibold">{i + 1}</span>
+                  <span className="font-mono text-xs text-muted">{time}</span>
+                </div>
+                <h3 className="font-serif text-2xl leading-tight tracking-tight">{title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted">{text}</p>
+              </div>
             </li>
           ))}
         </ol>
       </section>
 
-      <section aria-labelledby="map" className="space-y-3">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 id="map" className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">
-            The whole system on one page
-          </h2>
-          <p className="text-sm text-muted">
-            Download:{" "}
-            <a className="underline hover:text-text" href="/components-map.pdf">
-              PDF
-            </a>{" "}
-            ·{" "}
-            <a className="underline hover:text-text" href="/components-map.png">
-              PNG
-            </a>
-          </p>
-        </div>
-        <a href="/components-map.png" className="block overflow-hidden rounded-lg border border-border bg-white">
-          {/* eslint-disable-next-line @next/next/no-img-element -- static diagram, shown as-is */}
-          <img src="/components-map.png" alt="Components Map: who and what is involved at each stage, from the Sunday trigger to the brief" width={1230} height={1192} className="h-auto w-full" />
-        </a>
-        <p className="text-xs text-muted">Rows are the people and services involved; columns follow a run from trigger to output. Click to open full size.</p>
-      </section>
-
-      <section aria-labelledby="trust" className="grid gap-6 sm:grid-cols-3">
+      <section aria-labelledby="trust" className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <h2 id="trust" className="sr-only">
           Why you can trust it
         </h2>
         {[
-          ["Real numbers only", "Every figure comes straight from YouTube. The AI writes words, never statistics."],
-          ["Fair to small channels", "Views are compared with each channel's own normal, so a 50K channel's hit counts as much as a 5M one's."],
-          ["Free to run", "Stays inside the free limits of YouTube, Gemini, Vercel and Neon."],
-        ].map(([t, d]) => (
-          <div key={t} className="border-t border-rule pt-3">
-            <h3 className="font-medium">{t}</h3>
-            <p className="mt-1 text-sm leading-relaxed text-muted">{d}</p>
+          ["01", "Real numbers only", "Every figure comes straight from YouTube. The AI writes words, never statistics, and a fact-checker removes anything it invents."],
+          ["02", "Fair to small channels", "Views are compared with each channel's own normal, so a 50K channel's hit counts as much as a 5M one's."],
+          ["03", "Free to run", "Stays inside the free limits of YouTube, Gemini, Vercel and Neon, with budgets that stop before a limit is hit."],
+        ].map(([n, t, d]) => (
+          <div key={t} className="glass reveal rounded-3xl p-6">
+            <span className="text-gradient font-serif text-4xl">{n}</span>
+            <h3 className="mt-3 text-lg font-semibold">{t}</h3>
+            <p className="mt-1.5 text-sm leading-relaxed text-muted">{d}</p>
           </div>
         ))}
       </section>
 
-      <section aria-labelledby="tech" className="space-y-6 border-t border-border pt-10">
-        <div className="space-y-2">
-          <h2 id="tech" className="font-serif text-2xl">For the technically curious</h2>
-          <p className="max-w-2xl text-sm leading-relaxed text-muted">
-            Vercel Hobby functions stop at 300 seconds, so the pipeline runs as checkpointed stages: each invocation runs one stage (under
-            ~170 s), saves its output in Postgres, and triggers the next with <code className="font-mono text-xs">after()</code>. A database
-            claim stops two invocations running the same stage. A stage that fails three times sends the run down a degraded path to
-            publishing, and a watchdog posts a backup brief if nothing is ready.
+      <section aria-labelledby="map" className="reveal space-y-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-faint">Components map</p>
+            <h2 id="map" className="mt-1 font-serif text-4xl tracking-tight">The whole system on one page</h2>
+          </div>
+          <div className="flex gap-2">
+            <a className="glass rounded-full px-4 py-2 text-sm font-medium transition hover:border-border-strong" href="/components-map.pdf">
+              Download PDF
+            </a>
+            <a className="glass rounded-full px-4 py-2 text-sm font-medium transition hover:border-border-strong" href="/components-map.png">
+              PNG
+            </a>
+          </div>
+        </div>
+        <a href="/components-map.png" className="glass block overflow-hidden rounded-[2rem] p-2 sm:p-3">
+          <span className="block overflow-hidden rounded-[1.5rem] bg-white">
+            {/* eslint-disable-next-line @next/next/no-img-element -- static diagram, shown as-is */}
+            <img src="/components-map.png" alt="Components Map: who and what is involved at each stage, from the Sunday trigger to the brief" width={1230} height={1192} className="h-auto w-full" />
+          </span>
+        </a>
+        <p className="text-xs text-muted">Rows are the people and services involved; columns follow a run from trigger to output. Click to open full size.</p>
+      </section>
+
+      <section aria-labelledby="tech" className="space-y-6">
+        <div className="max-w-3xl space-y-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-faint">For the technically curious</p>
+          <h2 id="tech" className="font-serif text-4xl tracking-tight">Under the hood</h2>
+          <p className="text-sm leading-relaxed text-muted">
+            Vercel Hobby functions stop at 300 seconds, so the pipeline runs as checkpointed stages: each one saves its output in Postgres and
+            hands off to the next with <code className="rounded bg-surface-sunk px-1 font-mono text-xs">after()</code>. A database claim stops two
+            invocations running the same stage, a stage that fails three times still publishes a partial brief, and a watchdog posts a backup
+            brief if nothing is ready.
           </p>
         </div>
-        <Mermaid chart={COMPONENTS_MERMAID} />
-        <ol className="divide-y divide-border border-y border-border">
+        <div className="glass rounded-[2rem] p-3 sm:p-5">
+          <Mermaid chart={COMPONENTS_MERMAID} />
+        </div>
+        <ol className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {STAGES.map(([name, text]) => (
-            <li key={name} className="grid gap-1 py-4 sm:grid-cols-[150px_1fr] sm:gap-4">
-              <span className="font-mono text-sm font-semibold">{name}</span>
-              <span className="text-sm leading-relaxed text-muted">{text}</span>
+            <li key={name} className="glass reveal rounded-2xl p-4">
+              <span className="font-mono text-xs font-semibold text-accent">{name}</span>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted">{text}</p>
             </li>
           ))}
         </ol>

@@ -4,10 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const NAV = [
-  { href: "/", label: "This week" },
-  { href: "/briefs", label: "Archive" },
-  { href: "/runs", label: "Run log" },
-  { href: "/architecture", label: "How it works" },
+  { href: "/", label: "This week", short: "Brief" },
+  { href: "/briefs", label: "Archive", short: "Archive" },
+  { href: "/runs", label: "Run log", short: "Runs" },
+  { href: "/architecture", label: "How it works", short: "How" },
+  { href: "/settings", label: "Admin", short: "Admin" },
 ] as const;
 
 export function ActiveNavLinks() {
@@ -17,26 +18,26 @@ export function ActiveNavLinks() {
 export function NavLinks({ path }: { path: string | null }) {
   const active = (href: string) => path !== null && (href === "/" ? path === "/" : path.startsWith(href));
   return (
-    <nav aria-label="Main" className="-mx-2 flex w-full flex-wrap gap-y-1 text-sm sm:mx-0 sm:w-auto sm:flex-1 sm:justify-end">
-      {NAV.map((n) => (
-        <Link
-          key={n.href}
-          href={n.href}
-          aria-current={active(n.href) ? "page" : undefined}
-          className={`whitespace-nowrap px-2 py-1 transition-colors ${
-            active(n.href) ? "text-text underline decoration-accent decoration-2 underline-offset-[6px]" : "text-muted hover:text-text"
-          }`}
-        >
-          {n.label}
-        </Link>
-      ))}
-      <Link
-        href="/settings"
-        aria-current={active("/settings") ? "page" : undefined}
-        className={`whitespace-nowrap px-2 py-1 ${active("/settings") ? "text-text" : "text-faint hover:text-text"}`}
-      >
-        Admin
-      </Link>
+    <nav aria-label="Main" className="w-full sm:ml-auto sm:w-auto">
+      <ul className="flex items-center justify-between gap-0.5 rounded-full bg-surface-sunk p-1 text-[13px] sm:justify-end">
+        {NAV.map((n) => {
+          const on = active(n.href);
+          return (
+            <li key={n.href}>
+              <Link
+                href={n.href}
+                aria-current={on ? "page" : undefined}
+                className={`block whitespace-nowrap rounded-full px-3 py-1.5 font-medium transition-all duration-200 ${
+                  on ? "bg-surface-strong text-text shadow-sm ring-1 ring-border" : "text-muted hover:text-text"
+                }`}
+              >
+                <span className="sm:hidden">{n.short}</span>
+                <span className="hidden sm:inline">{n.label}</span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
     </nav>
   );
 }

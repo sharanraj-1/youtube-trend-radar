@@ -28,15 +28,18 @@ async function Settings() {
     return <ErrorState what="your settings" />;
   }
   return (
-    <div className="space-y-10">
-      <header className="flex items-start justify-between gap-4">
-        <div className="space-y-2">
-          <h1 className="font-serif text-4xl font-medium tracking-tight">Admin</h1>
-          <p className="text-muted">Everything you can do here, step by step.</p>
+    <div className="mx-auto max-w-4xl space-y-6">
+      <header className="rise mb-10 flex items-end justify-between gap-4">
+        <div className="space-y-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-faint">Admin</p>
+          <h1 className="font-serif text-5xl tracking-tight sm:text-6xl">
+            Your <em className="text-gradient">control room</em>
+          </h1>
+          <p className="text-lg text-muted">Everything you can do here, step by step.</p>
         </div>
         {!adminIsOpen() && (
           <form action={logout}>
-            <button className="text-sm text-muted underline hover:text-text">Sign out</button>
+            <button className="glass rounded-full px-4 py-2 text-sm text-muted transition hover:text-text">Sign out</button>
           </form>
         )}
       </header>

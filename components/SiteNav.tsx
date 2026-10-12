@@ -1,15 +1,16 @@
 import { Suspense } from "react";
 import Link from "next/link";
+import { RadarMark } from "./RadarMark";
 import { ActiveNavLinks, NavLinks } from "./NavLinks";
 
-/** Static header shell; only the active-link highlight (usePathname) streams in, as Cache Components requires. */
+/** Floating glass nav. The shell renders statically; only the active-pill (usePathname) streams in. */
 export function SiteNav() {
   return (
-    <header className="border-b border-border">
-      <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-x-6 gap-y-2 px-5 py-4 sm:px-6">
-        <Link href="/" className="flex items-baseline gap-2">
-          <span className="font-serif text-xl font-semibold tracking-tight">Trend Radar</span>
-          <span className="hidden text-xs text-muted sm:inline">for tech creators</span>
+    <header className="sticky top-0 z-40 px-3 pt-3 sm:px-6 sm:pt-4">
+      <div className="glass-strong mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl px-3 py-2 sm:flex-nowrap sm:rounded-full sm:px-2.5">
+        <Link href="/" className="flex items-center gap-2.5 rounded-full py-1 pl-1 pr-2">
+          <RadarMark className="h-7 w-7" />
+          <span className="text-[15px] font-semibold tracking-tight">Trend Radar</span>
         </Link>
         <Suspense fallback={<NavLinks path={null} />}>
           <ActiveNavLinks />

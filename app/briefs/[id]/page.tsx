@@ -28,7 +28,7 @@ async function Brief({ params }: { params: Promise<{ id: string }> }) {
   if (!brief) return <NotFound />;
   return (
     <div className="space-y-6">
-      <Link href="/briefs" className="text-sm text-muted hover:text-text">
+      <Link href="/briefs" className="glass inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm text-muted transition hover:text-text">
         ← All briefs
       </Link>
       <BriefFlow brief={brief.json as BriefJson} briefId={brief.id} createdAt={brief.createdAt.toISOString()} />
