@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
-import { isAdmin } from "@/lib/auth";
+import { adminIsOpen, isAdmin } from "@/lib/auth";
 import { getConfig } from "@/lib/settings";
 import { ErrorState, LoadingBlock } from "@/components/States";
 import { GeneratePanel, LoginForm, SettingsForm } from "./forms";
@@ -34,9 +34,11 @@ async function Settings() {
           <h1 className="font-serif text-4xl font-medium tracking-tight">Admin</h1>
           <p className="text-muted">Everything you can do here, step by step.</p>
         </div>
-        <form action={logout}>
-          <button className="text-sm text-muted underline hover:text-text">Sign out</button>
-        </form>
+        {!adminIsOpen() && (
+          <form action={logout}>
+            <button className="text-sm text-muted underline hover:text-text">Sign out</button>
+          </form>
+        )}
       </header>
       <GeneratePanel />
       <SettingsForm

@@ -8,7 +8,8 @@ const EnvSchema = z.object({
   GEMINI_API_KEY: z.string().min(10),
   GEMINI_MODEL: z.string().trim().min(1).default("gemini-3.8-flash"),
   CRON_SECRET: z.string().min(32, "CRON_SECRET must be 32+ chars"),
-  ADMIN_PASSWORD: z.string().min(6),
+  // Optional: when unset, the Admin page is open to anyone (no sign-in).
+  ADMIN_PASSWORD: z.string().min(6).optional(),
   FEEDBACK_SECRET: z.string().min(32, "FEEDBACK_SECRET must be 32+ chars"),
   APP_BASE_URL: z.string().url().optional().catch(undefined),
   RESEND_API_KEY: optional,
@@ -24,10 +25,10 @@ export const REQUIRED_ENV = [
   "YOUTUBE_API_KEY",
   "GEMINI_API_KEY",
   "CRON_SECRET",
-  "ADMIN_PASSWORD",
   "FEEDBACK_SECRET",
 ] as const;
 export const OPTIONAL_ENV = [
+  "ADMIN_PASSWORD",
   "GEMINI_MODEL",
   "APP_BASE_URL",
   "RESEND_API_KEY",

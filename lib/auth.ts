@@ -7,7 +7,7 @@ const SESSION_MS = 7 * 86400_000;
 
 function key() {
   // Changing ADMIN_PASSWORD invalidates all sessions.
-  return createHash("sha256").update(`${env().ADMIN_PASSWORD}:${env().CRON_SECRET}`).digest();
+  return createHash("sha256").update(`${env().ADMIN_PASSWORD ?? ""}:${env().CRON_SECRET}`).digest();
 }
 
 function safeEqual(a: string, b: string) {
@@ -30,11 +30,21 @@ export function verifySessionToken(token: string | undefined, now = Date.now()) 
 
 export function checkPassword(input: string) {
   const a = createHash("sha256").update(input).digest("hex");
-  const b = createHash("sha256").update(env().ADMIN_PASSWORD).digest("hex");
+  const b = createHash("sha256").update(env().ADMIN_PASSWORD ?? "").digest("hex");
   return safeEqual(a, b);
 }
 
+/** No ADMIN_PASSWORD configured = the Admin page is open (owner's choice). */
+export function adminIsOpen() {
+  try {
+    return !env().ADMIN_PASSWORD;
+  } catch {
+    return false;
+  }
+}
+
 export async function isAdmin() {
+  if (adminIsOpen()) return true;
   try {
     const store = await cookies();
     return verifySessionToken(store.get(ADMIN_COOKIE)?.value);

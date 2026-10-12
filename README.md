@@ -44,7 +44,7 @@ See [COMPONENTS_MAP.md](COMPONENTS_MAP.md) for the full diagram, data-flow lifec
 | `/briefs`, `/briefs/[id]` | public | Archive of past briefs |
 | `/runs` | public | Run log: each stage's status, duration, retries, quota used, Gemini calls, errors |
 | `/architecture` | public | Rendered Components Map and pipeline explanation |
-| `/settings` | `ADMIN_PASSWORD` (httpOnly cookie) | Edit config, resolve handles, "Generate brief now" |
+| `/settings` | open (sign-in only if `ADMIN_PASSWORD` is set) | Edit config, check channels, "Create a new brief", test email/Telegram |
 | `POST /api/runs/manual` | admin cookie or `Bearer CRON_SECRET` | Start a run (globally limited to one per 30 min) |
 | `POST /api/pipeline/step` | `Bearer CRON_SECRET` | Pipeline runner (self-chaining) |
 | `POST /api/runs/resume` | public, idempotent | Continues an *existing* stalled run (used by open browser tabs and the GitHub Actions pump); never starts a run |
@@ -85,7 +85,7 @@ For the GitHub Actions backup trigger, add the repo secrets `APP_BASE_URL` and `
 | `GEMINI_MODEL` | – | Default `gemini-3.8-flash`. The spec's `gemini-2.5-flash` is no longer available to new API users. |
 | `GEMINI_FALLBACK_MODELS` | – | Default `gemini-3.7-flash,gemini-3.6-flash,gemini-3.5-flash`. Used when a model's free daily quota runs out or it returns persistent 503s. |
 | `CRON_SECRET` | ✅ | Random, 32+ characters. Vercel Cron sends it as `Authorization: Bearer …`. |
-| `ADMIN_PASSWORD` | ✅ | Password for `/settings` (6+ characters) |
+| `ADMIN_PASSWORD` | optional | Password for `/settings` (6+ characters). **Currently unset, so Admin is open to anyone**; set it to require sign-in. |
 | `FEEDBACK_SECRET` | ✅ | Random, 32+ characters, used to HMAC-sign feedback links |
 | `APP_BASE_URL` | ✅ in prod | Public URL, used for self-triggering and links in emails |
 | `RESEND_API_KEY`, `RESEND_FROM` | optional | Email delivery (`onboarding@resend.dev` can only send to your own Resend address) |
@@ -170,6 +170,7 @@ The tests cover:
 | – | Language gate and likely-promoted filter (≥ 20K views, < 0.2% engagement) | `relevanceLanguage` only biases search. Paid brand ads showed 7,000× "outliers". |
 | 20 s timeout for every external call | 20 s for YouTube, Resend and Telegram; 120 s for Gemini | Structured generation for 50 videos can take 30–90 s under load. |
 | Video search `relevanceLanguage` | Alternates `en` / `hi` per keyword | The API takes one language per call. |
+| `/settings` protected by `ADMIN_PASSWORD` | Password is optional and currently removed (owner's request) | Anyone with the link can change settings or start a run (still limited to one per 30 min). Setting `ADMIN_PASSWORD` restores sign-in. |
 | Each invocation runs exactly one stage, then `after()` triggers the next | Quick stages run back-to-back while an invocation is under 60 s old; continuation also comes from external callers | In production, Vercel answered the 6th self-trigger with **HTTP 508 INFINITE_LOOP_DETECTED** and the run stalled. The exact threshold isn't documented. |
 
 ## Known limitations
