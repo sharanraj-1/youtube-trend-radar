@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import type { AppConfig } from "@/lib/settings";
-import { generateNow, login, resolveHandlesAction, saveSettings, type ActionState } from "./actions";
+import { generateNow, login, resolveHandlesAction, saveSettings, sendTestEmail, type ActionState } from "./actions";
 
 const input =
   "w-full rounded-md border border-border bg-surface px-3 py-2.5 text-[0.95rem] outline-none transition-colors placeholder:text-faint focus:border-text";
@@ -105,8 +105,9 @@ export function GeneratePanel() {
   );
 }
 
-export function SettingsForm({ config }: { config: AppConfig }) {
+export function SettingsForm({ config, emailReady }: { config: AppConfig; emailReady: boolean }) {
   const [state, action, pending] = useActionState(saveSettings, {} as ActionState);
+  const [mail, mailAction, mailing] = useActionState(sendTestEmail, {} as ActionState);
   const [check, checkAction, checking] = useActionState(resolveHandlesAction, {} as ActionState);
   return (
     <form action={action} className="space-y-10">
@@ -132,10 +133,27 @@ export function SettingsForm({ config }: { config: AppConfig }) {
         </Field>
       </Step>
 
-      <Step n={3} title="Get it by email (optional)" intro="We'll send a copy of each brief here. Leave empty to only use this website.">
-        <Field label="Email address">
+      <Step
+        n={3}
+        title="Get it by email (optional)"
+        intro="Each Sunday's brief is emailed here as soon as it's ready. Leave empty to only use this website."
+      >
+        <p className={`text-sm ${emailReady ? "text-ok" : "text-muted"}`}>
+          {emailReady ? "✓ Email sending is switched on." : "Email sending isn't switched on yet (needs a Resend API key on the server)."}
+        </p>
+        <Field
+          label="Email address"
+          hint="With Resend's free test sender this must be the address you signed up to Resend with (unless you verify your own domain in Resend)."
+        >
           <input className={input} type="email" name="briefEmail" defaultValue={config.briefEmail} placeholder="you@example.com" />
         </Field>
+        <div className="space-y-2">
+          <button formAction={mailAction} formNoValidate className={secondary} disabled={mailing || !emailReady}>
+            {mailing ? "Sending…" : "Send me a test email"}
+          </button>
+          <p className="text-xs text-muted">Sends the latest brief to the saved address. Save your changes first.</p>
+          <Result state={mail} />
+        </div>
       </Step>
 
       <details className="group border-t border-rule pt-6">

@@ -3,6 +3,7 @@ import { db, schema } from "../../db";
 import { baseUrl } from "../../env";
 import { alertTelegram, sendEmail } from "../../notify";
 import type { BriefJson } from "../../render/types";
+import { renderBriefHtml } from "../../render/email";
 import type { StageContext, StageResult } from "../types";
 
 /** Brief is already saved by RENDER. Email/Telegram are best-effort: failures are recorded, never fatal. */
@@ -16,7 +17,7 @@ export async function deliver(ctx: StageContext): Promise<StageResult> {
     ? await sendEmail({
         to: ctx.config.briefEmail,
         subject: `Sunday brief: ${json.clusters.map((c) => c.theme_name).slice(0, 3).join(" · ") || "this week's trends"}`,
-        html: brief.html,
+        html: renderBriefHtml(json, url), // link straight to this brief's step-by-step page
       })
     : { sent: false, error: "briefEmail not configured" };
 

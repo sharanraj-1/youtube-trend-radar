@@ -13,6 +13,11 @@ import { stepAndChain } from "@/lib/pipeline/runner";
 import { YouTubeClient } from "@/lib/youtube/client";
 import { QuotaManager } from "@/lib/youtube/quota";
 import { resolveHandles } from "@/lib/youtube/resolve";
+import { baseUrl } from "@/lib/env";
+import { latestBrief } from "@/lib/queries";
+import { renderBriefHtml } from "@/lib/render/email";
+import { sendEmail } from "@/lib/notify";
+import type { BriefJson } from "@/lib/render/types";
 
 export interface ActionState {
   ok?: boolean;
@@ -122,5 +127,35 @@ export async function generateNow(_prev: ActionState): Promise<ActionState> {
     if (err instanceof RateLimitedError) return { ok: false, message: err.message };
     log.error("generate now failed", { error: err instanceof Error ? err.message : String(err) });
     return { ok: false, message: "Couldn't start a run right now." };
+  }
+}
+
+/** Sends the latest brief to the saved email address so delivery can be checked any time. */
+export async function sendTestEmail(_prev: ActionState): Promise<ActionState> {
+  void _prev;
+  if (!(await isAdmin())) return { ok: false, message: "Session expired. Please log in again." };
+  try {
+    if (!process.env.RESEND_API_KEY) return { ok: false, message: "Email isn't switched on yet (no Resend API key on the server)." };
+    const cfg = await getConfig();
+    if (!cfg.briefEmail) return { ok: false, message: "Save an email address first, then send the test." };
+    const brief = await latestBrief();
+    if (!brief) return { ok: false, message: "There's no brief to send yet. Create one first." };
+    const json = brief.json as BriefJson;
+    const res = await sendEmail({
+      to: cfg.briefEmail,
+      subject: `[Test] Sunday brief: ${json.clusters.map((c) => c.theme_name).slice(0, 2).join(" · ") || "this week's trends"}`,
+      html: renderBriefHtml(json, `${baseUrl()}/briefs/${brief.id}`),
+    });
+    if (res.sent) return { ok: true, message: `Sent to ${cfg.briefEmail}. It can take a minute to arrive; check spam the first time.` };
+    const own = /only send testing emails to your own email address \(([^)]+)\)/i.exec(res.error ?? "")?.[1];
+    return {
+      ok: false,
+      message: own
+        ? `Resend's free test sender can only email the address on your Resend account (${own}). Use that address, or verify a domain in Resend.`
+        : `Couldn't send: ${res.error ?? "unknown error"}`,
+    };
+  } catch (err) {
+    log.error("test email failed", { error: err instanceof Error ? err.message : String(err) });
+    return { ok: false, message: "Couldn't send the test email right now." };
   }
 }

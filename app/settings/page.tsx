@@ -39,7 +39,7 @@ async function Settings() {
         </form>
       </header>
       <GeneratePanel />
-      <SettingsForm config={config} />
+      <SettingsForm config={config} emailReady={!!process.env.RESEND_API_KEY} />
     </div>
   );
 }
