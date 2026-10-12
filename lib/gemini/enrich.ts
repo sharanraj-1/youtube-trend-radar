@@ -40,7 +40,7 @@ export function fallbackEnrichment(v: EnrichInput): EnrichResult {
 export async function enrichBatch(items: EnrichInput[], onCall?: () => void): Promise<EnrichOutcome> {
   const ids = new Set(items.map((i) => i.video_id));
   let repair: string | undefined;
-  let model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+  let model = process.env.GEMINI_MODEL || "gemini-3.8-flash";
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const { data, model: m } = await generateJson({
