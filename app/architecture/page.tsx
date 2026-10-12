@@ -39,10 +39,16 @@ export default function ArchitecturePage() {
         <h2 id="sunday" className="text-[11px] font-semibold uppercase tracking-[0.16em] text-faint">
           What happens every Sunday
         </h2>
-        <ol className="relative grid grid-cols-1 gap-4 lg:grid-cols-5">
-          <span aria-hidden className="absolute left-0 right-0 top-[2.15rem] hidden h-px bg-gradient-to-r from-accent via-accent-2 to-transparent lg:block" />
+        <ol className="grid grid-cols-1 gap-4 lg:grid-cols-5">
           {TIMELINE.map(([time, title, text], i) => (
             <li key={title} className="reveal relative">
+              {/* connector to the next card: sits in the gap, centred on the step badge */}
+              {i < TIMELINE.length - 1 && (
+                <span aria-hidden className="absolute -right-4 top-[35px] z-10 hidden w-4 items-center lg:flex">
+                  <span className="h-px flex-1 bg-gradient-to-r from-accent to-accent-2" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-accent-2" />
+                </span>
+              )}
               <div className="glass h-full rounded-3xl p-5">
                 <div className="mb-4 flex items-center gap-3">
                   <span className="btn-primary grid h-9 w-9 place-items-center rounded-full text-sm font-semibold">{i + 1}</span>

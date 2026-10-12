@@ -14,7 +14,7 @@ export const COMPONENTS_MERMAID = `flowchart TB
       direction LR
       COLLECT --> ENRICH --> SCORE --> CLUSTER --> STAGE --> SYNTHESIZE --> VALIDATE --> RENDER --> DELIVER
     end
-    WEB["Public pages<br/>/ · /briefs/[id] · /runs · /architecture"]
+    WEB["Web app<br/>momentum board · trend slider · your plan<br/>/ · /briefs · /runs · /architecture · /settings"]
     FB["GET /api/feedback<br/>HMAC-signed links"]
     HEALTH["GET /api/health"]
   end
@@ -35,7 +35,7 @@ export const COMPONENTS_MERMAID = `flowchart TB
   GEM["Gemini Flash<br/>@google/genai"]
   RS["Resend email"]
   TG["Telegram alerts"]
-  USER(["Ishaan: web + email"])
+  USER(["Ishaan: swipes trends, decides<br/>web + email + Telegram"])
 
   VC --> CRON
   GHA --> CRON

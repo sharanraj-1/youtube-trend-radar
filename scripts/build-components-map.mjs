@@ -41,16 +41,16 @@ const LANES = [
 // [lane, col, text lines, mono detail]
 const CARDS = {
   ishTrig: [0, 0, ["Wants to know what to", "film this week"], "before Sunday 11 AM"],
-  ishIn: [0, 1, ["Picks topics, peer", "channels and email once"], "/settings"],
-  ishOut: [0, 4, ["Reviews one trend at a", "time: film, maybe or", "skip. He decides"], "nothing filmed for him"],
-  dlvOut: [1, 4, ["Emails the brief; pings", "Telegram when it's ready", "or a run fails"], "onboarding@resend.dev"],
+  ishIn: [0, 1, ["Picks topics, peer", "channels and email once"], "/settings · control room"],
+  ishOut: [0, 4, ["Swipes the trend slider:", "film, maybe or skip.", "He decides"], "→ Your plan for the week"],
+  dlvOut: [1, 4, ["Emails the brief; pings", "Telegram when it's ready", "or a run fails"], "resend.dev · @yttrendppbot"],
   cronTrig: [2, 0, ["Starts the Sunday run;", "GitHub Actions backs it", "up and keeps it moving"], "05:00 IST · 30 23 * * 6"],
   ytIn: [3, 1, ["Peer uploads, India", "trending chart, 15 topic", "searches, top comments"], "≤ 6,000 of 10,000 units"],
   appTrig: [4, 0, ["Starts a run in steps,", "each under 170 s, then", "hands off to the next"], "CRON_SECRET checked"],
   appIn: [4, 1, ["Keeps English/Hindi,", "drops tiny channels and", "paid ads"], "≈ 300 videos kept"],
   appCtx: [4, 2, ["Compares each video", "with its channel's", "normal views"], "views ÷ channel median"],
   appProc: [4, 3, ["Groups videos into", "trends and ranks them", "in plain code"], "TF-IDF · ≥ 2 creators"],
-  appOut: [4, 4, ["Fact-checks the AI text,", "then publishes the", "step-by-step brief"], "/ · /briefs · /runs"],
+  appOut: [4, 4, ["Fact-checks the AI text,", "then shows a momentum", "board + trend slider"], "/ · /briefs · /runs"],
   dbCtx: [5, 2, ["Stores videos, daily", "stats, settings, runs", "and briefs"], "Neon · 60-day retention"],
   gemIn: [6, 1, ["Reads 50 titles at a", "time: format, products,", "on-topic or not"], "titles are data, not orders"],
   gemCtx: [6, 2, ["Labels each video once", "and reuses them next", "week"], "cached per prompt version"],
@@ -175,7 +175,7 @@ const html = `<!doctype html>
 <body>
   <div class="head">
     <h1>YouTube Trend Radar · Components Map</h1>
-    <p class="lede">Live YouTube data is collected every Sunday at 5 AM, grouped and ranked in plain code, and delivered as a step-by-step brief before 11 AM, so Ishaan knows what to film this week. Gemini Flash reads titles and writes the words; it never decides.</p>
+    <p class="lede">Live YouTube data is collected every Sunday at 5 AM, ranked in plain code and delivered by 11 AM as a swipeable brief, so Ishaan picks what to film in minutes. Gemini Flash writes the words; it never decides.</p>
   </div>
   <svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
     <defs><marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" fill="${C.arrow}"/></marker></defs>
@@ -191,7 +191,7 @@ const html = `<!doctype html>
       <ul>
         <li>Ishaan decides what to film; the brief only recommends</li>
         <li>He picks the topics and peer channels to track</li>
-        <li>Every "film / maybe / skip" call is his alone</li>
+        <li>Every "film / maybe / skip" call is his, saved to his plan</li>
       </ul>
     </div>
     <div>

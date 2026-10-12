@@ -26,7 +26,7 @@ flowchart TB
       direction LR
       COLLECT --> ENRICH --> SCORE --> CLUSTER --> STAGE --> SYNTHESIZE --> VALIDATE --> RENDER --> DELIVER
     end
-    WEB["Public pages<br/>/ · /briefs/[id] · /runs · /architecture"]
+    WEB["Web app<br/>momentum board · trend slider · your plan<br/>/ · /briefs · /runs · /architecture · /settings"]
     FB["GET /api/feedback<br/>HMAC-signed links"]
     HEALTH["GET /api/health"]
   end
@@ -47,7 +47,7 @@ flowchart TB
   GEM["Gemini Flash<br/>@google/genai"]
   RS["Resend email"]
   TG["Telegram alerts"]
-  USER(["Ishaan: web + email"])
+  USER(["Ishaan: swipes trends, decides<br/>web + email + Telegram"])
 
   VC --> CRON
   GHA --> CRON
@@ -121,6 +121,7 @@ flowchart TB
 | **SYNTHESIZE** | One Gemini Flash call. The input is qualitative signal bands (no raw numbers), titles and audience questions. The output is theme, why-now and angles, with no numbers. |
 | **VALIDATE** | zod schema, evidence IDs ⊂ cluster, no digits outside the cluster stats/entity names, unique themes, snapshots < 30 h. One repair call; anything still failing renders stats-only. |
 | **RENDER** | Builds the brief JSON plus inline-styled HTML (web + email). The template injects every statistic. |
+| **Web app** | Studio-themed UI. The home page is a hero with a momentum board (views vs. channel normal, per trend), a swipeable trend slider (scroll-snap, arrows, dots, keyboard, touch) and a synced detail panel. The film / maybe / skip decision auto-advances the slider and fills **Your plan**. Also: archive grid, run log, how-it-works and Admin "control room". |
 | **DELIVER** | Resend email and Telegram are best-effort; their failures are recorded in `briefs.delivery` and never fail the run. |
 | **Neon Postgres** | `settings`, `channels`, `videos`, `video_snapshots`, `enrichments`, `runs`, `stage_outputs`, `clusters`, `briefs`, `feedback`. |
 | **Guardrails** | Quota manager (per-run unit budget, charged before each call), injection framing (untrusted data blocks, delimiter neutralising), validator, watchdog, env validation at boot, log redaction. |
