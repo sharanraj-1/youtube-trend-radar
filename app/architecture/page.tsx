@@ -36,10 +36,10 @@ export default function ArchitecturePage() {
         <h2 id="sunday" className="mb-6 text-xs font-semibold uppercase tracking-[0.12em] text-muted">
           What happens every Sunday
         </h2>
-        <ol className="relative space-y-8 border-l border-rule pl-6">
+        <ol className="relative ml-3 space-y-8 border-l border-rule pl-7">
           {TIMELINE.map(([time, title, text], i) => (
             <li key={title} className="relative">
-              <span className="absolute -left-[2.05rem] flex h-6 w-6 items-center justify-center rounded-full border border-rule bg-bg text-xs font-semibold">
+              <span className="absolute -left-[2.5rem] flex h-6 w-6 items-center justify-center rounded-full bg-text text-xs font-semibold text-bg ring-4 ring-bg">
                 {i + 1}
               </span>
               <p className="text-xs font-medium uppercase tracking-wide text-accent">{time}</p>
