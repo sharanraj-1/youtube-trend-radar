@@ -5,7 +5,7 @@ export const metadata = { title: "How it works" };
 
 const STAGES: [string, string][] = [
   ["COLLECT", "Peer channel uploads (1 unit each), the India Science & Tech trending chart, then up to 15 keyword searches (100 units each). Hydrates videos and channels in batches of 50, drops channels under 5K subscribers, computes each channel's median views over its last 15 uploads, and pulls top comments for the 60 biggest outliers. Snapshots every video's stats."],
-  ["ENRICH", "Gemini Flash classifies ~40 videos per call: format, canonical entities (Hindi/Hinglish normalised), topic key and summary. Titles are wrapped as untrusted data. Invalid JSON gets one repair retry, then falls back to format “other”."],
+  ["ENRICH", "Gemini Flash classifies 50 videos per call: format, canonical entities (Hindi/Hinglish normalised), topic key and summary. Titles are wrapped as untrusted data. Invalid JSON gets one repair retry, then falls back to format “other”."],
   ["SCORE", "Pure arithmetic: age, views/hour, outlier multiple (views ÷ channel median), engagement rate and 72-hour velocity from snapshots."],
   ["CLUSTER", "No AI and no embeddings: group by dominant entity, then merge by TF-IDF cosine ≥ 0.35 or a shared top entity. A cluster needs 2+ channels; any one channel counts for at most 2 videos in the stats."],
   ["STAGE", "Match to last week's clusters (same entity or cosine ≥ 0.5), then label each cluster emerging, rising, peaking or saturated, and rank it with a transparent formula."],
@@ -53,7 +53,7 @@ export default function ArchitecturePage() {
       <section className="grid gap-4 sm:grid-cols-3">
         {[
           ["Free-tier YouTube", "Budget of 6,000 of the 10,000 daily units per run; cheap 1-unit calls first; stops searching immediately on quotaExceeded."],
-          ["Free-tier Gemini", "About 12 enrichment calls and 1–2 synthesis calls per run, at most 3 in flight, exponential backoff with jitter on 429."],
+          ["Free-tier Gemini", "About 7 enrichment calls and 1–2 synthesis calls per run (the free tier allows 20 per model per day), at most 3 in flight, backoff with jitter, and fallback across Flash models."],
           ["Free-tier Vercel + Neon", "Three daily-or-less crons, short functions, 60-day data retention."],
         ].map(([t, d]) => (
           <div key={t} className="rounded-2xl border border-border bg-surface p-4">
