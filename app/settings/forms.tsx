@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import type { AppConfig } from "@/lib/settings";
-import { generateNow, login, resolveHandlesAction, saveSettings, sendTestEmail, type ActionState } from "./actions";
+import { generateNow, login, resolveHandlesAction, saveSettings, sendTestAlert, sendTestEmail, type ActionState } from "./actions";
 
 const input =
   "w-full rounded-md border border-border bg-surface px-3 py-2.5 text-[0.95rem] outline-none transition-colors placeholder:text-faint focus:border-text";
@@ -105,9 +105,10 @@ export function GeneratePanel() {
   );
 }
 
-export function SettingsForm({ config, emailReady }: { config: AppConfig; emailReady: boolean }) {
+export function SettingsForm({ config, emailReady, telegramReady }: { config: AppConfig; emailReady: boolean; telegramReady: boolean }) {
   const [state, action, pending] = useActionState(saveSettings, {} as ActionState);
   const [mail, mailAction, mailing] = useActionState(sendTestEmail, {} as ActionState);
+  const [tg, tgAction, tgSending] = useActionState(sendTestAlert, {} as ActionState);
   const [check, checkAction, checking] = useActionState(resolveHandlesAction, {} as ActionState);
   return (
     <form action={action} className="space-y-10">
@@ -153,6 +154,22 @@ export function SettingsForm({ config, emailReady }: { config: AppConfig; emailR
           </button>
           <p className="text-xs text-muted">Sends the latest brief to the saved address. Save your changes first.</p>
           <Result state={mail} />
+        </div>
+      </Step>
+
+      <Step
+        n={4}
+        title="Alerts on Telegram"
+        intro="A short message when a new brief is ready, and a warning if a run has a problem, so you never have to check the site to find out."
+      >
+        <p className={`text-sm ${telegramReady ? "text-ok" : "text-muted"}`}>
+          {telegramReady ? "✓ Telegram alerts are switched on." : "Telegram alerts aren't switched on yet (needs a bot token and chat ID on the server)."}
+        </p>
+        <div className="space-y-2">
+          <button formAction={tgAction} formNoValidate className={secondary} disabled={tgSending || !telegramReady}>
+            {tgSending ? "Sending…" : "Send me a test alert"}
+          </button>
+          <Result state={tg} />
         </div>
       </Step>
 

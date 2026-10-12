@@ -32,14 +32,18 @@ async function Settings() {
       <header className="flex items-start justify-between gap-4">
         <div className="space-y-2">
           <h1 className="font-serif text-4xl font-medium tracking-tight">Admin</h1>
-          <p className="text-muted">Three things you can do here, in order.</p>
+          <p className="text-muted">Everything you can do here, step by step.</p>
         </div>
         <form action={logout}>
           <button className="text-sm text-muted underline hover:text-text">Sign out</button>
         </form>
       </header>
       <GeneratePanel />
-      <SettingsForm config={config} emailReady={!!process.env.RESEND_API_KEY} />
+      <SettingsForm
+        config={config}
+        emailReady={!!process.env.RESEND_API_KEY}
+        telegramReady={!!(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID)}
+      />
     </div>
   );
 }

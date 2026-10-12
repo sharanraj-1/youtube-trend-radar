@@ -16,7 +16,7 @@ import { resolveHandles } from "@/lib/youtube/resolve";
 import { baseUrl } from "@/lib/env";
 import { latestBrief } from "@/lib/queries";
 import { renderBriefHtml } from "@/lib/render/email";
-import { sendEmail } from "@/lib/notify";
+import { alertTelegram, sendEmail } from "@/lib/notify";
 import type { BriefJson } from "@/lib/render/types";
 
 export interface ActionState {
@@ -158,4 +158,15 @@ export async function sendTestEmail(_prev: ActionState): Promise<ActionState> {
     log.error("test email failed", { error: err instanceof Error ? err.message : String(err) });
     return { ok: false, message: "Couldn't send the test email right now." };
   }
+}
+
+/** Sends a test Telegram alert to the configured chat. */
+export async function sendTestAlert(_prev: ActionState): Promise<ActionState> {
+  void _prev;
+  if (!(await isAdmin())) return { ok: false, message: "Session expired. Please log in again." };
+  if (!process.env.TELEGRAM_BOT_TOKEN || !process.env.TELEGRAM_CHAT_ID)
+    return { ok: false, message: "Telegram isn't switched on yet (needs a bot token and chat ID on the server)." };
+  const res = await alertTelegram(`🔔 Test alert from Trend Radar. You'll get messages here when a brief is ready or a run has a problem.
+${baseUrl()}`);
+  return res.sent ? { ok: true, message: "Sent! Check Telegram." } : { ok: false, message: `Couldn't send: ${res.error ?? "unknown error"}` };
 }
