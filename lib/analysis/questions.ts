@@ -11,6 +11,9 @@ export function isQuestion(text: string): boolean {
   const t = text.trim();
   if (t.length < 8 || t.length > 300) return false;
   if (/https?:\/\//i.test(t)) return false;
+  // Same language gate as videos: mostly Latin (English/Hinglish) or Devanagari (Hindi).
+  const letters = t.match(/\p{L}/gu) ?? [];
+  if (letters.length && letters.filter((c) => /[A-Za-z\u0900-\u097F]/.test(c)).length / letters.length < 0.7) return false;
   const end = stripTrailing(t);
   if (end.endsWith("?")) return true;
   if (HI_START.test(t)) return true;

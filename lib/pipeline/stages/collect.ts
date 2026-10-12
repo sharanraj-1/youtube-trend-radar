@@ -49,12 +49,12 @@ export function languageAllowed(v: VideoItem, languages: string[]): boolean {
   if (declared && declared !== "zx" && declared !== "un") return allowed.has(declared);
   const letters = v.snippet.title.match(/\p{L}/gu) ?? [];
   if (letters.length === 0) return true;
-  const ok = letters.filter((c) => /[A-Za-zऀ-ॿ]/.test(c)).length;
+  const ok = letters.filter((c) => /[A-Za-z\u0900-\u097F]/.test(c)).length;
   return ok / letters.length >= 0.7;
 }
 
 export function guessLang(v: VideoItem): string {
-  if (/[ऀ-ॿ]/.test(v.snippet.title)) return "hi";
+  if (/[\u0900-\u097F]/.test(v.snippet.title)) return "hi";
   const l = (v.snippet.defaultAudioLanguage ?? v.snippet.defaultLanguage ?? "").toLowerCase();
   if (l.startsWith("hi")) return "hi";
   if (l) return l.slice(0, 2);

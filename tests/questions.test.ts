@@ -16,6 +16,7 @@ describe("isQuestion (real comments from the first live run)", () => {
     "what decades of greed can push people to achieve.",
     "great video bro",
     "Check this https://example.com?",
+    "netwaif/baton plugin을 이용해서 claude agent-layer을 이용한 통신을 사용하면 어떨까요?",
   ])("rejects %s", (t) => expect(isQuestion(t)).toBe(false));
 
   it("ranks explicit '?' questions ahead of more-liked implicit ones", () => {
