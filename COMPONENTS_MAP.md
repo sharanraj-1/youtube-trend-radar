@@ -2,6 +2,12 @@
 
 This map shows every component, how data moves between them, and what happens when something fails. The same diagram is rendered live at [`/architecture`](https://youtube-trend-radar.vercel.app/architecture). Its source is [`lib/architecture.ts`](lib/architecture.ts), and a unit test keeps this file in sync with it.
 
+## Swimlane map (PDF / PNG)
+
+![YouTube Trend Radar Components Map](docs/components-map.png)
+
+One-page version: [docs/components-map.pdf](docs/components-map.pdf) · [PNG](docs/components-map.png). Source: [`scripts/build-components-map.mjs`](scripts/build-components-map.mjs), so run `npm run map` and re-render after changing the system (see README).
+
 ## Diagram (Mermaid)
 
 ```mermaid

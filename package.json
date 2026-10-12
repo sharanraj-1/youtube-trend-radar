@@ -14,7 +14,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "typecheck": "tsc --noEmit",
-    "brief": "tsx scripts/print-brief.ts"
+    "brief": "tsx scripts/print-brief.ts",
+    "map": "node scripts/build-components-map.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.28.0",

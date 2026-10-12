@@ -50,6 +50,29 @@ export default function ArchitecturePage() {
         </ol>
       </section>
 
+      <section aria-labelledby="map" className="space-y-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 id="map" className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">
+            The whole system on one page
+          </h2>
+          <p className="text-sm text-muted">
+            Download:{" "}
+            <a className="underline hover:text-text" href="/components-map.pdf">
+              PDF
+            </a>{" "}
+            ·{" "}
+            <a className="underline hover:text-text" href="/components-map.png">
+              PNG
+            </a>
+          </p>
+        </div>
+        <a href="/components-map.png" className="block overflow-hidden rounded-lg border border-border bg-white">
+          {/* eslint-disable-next-line @next/next/no-img-element -- static diagram, shown as-is */}
+          <img src="/components-map.png" alt="Components Map: who and what is involved at each stage, from the Sunday trigger to the brief" width={1230} height={1192} className="h-auto w-full" />
+        </a>
+        <p className="text-xs text-muted">Rows are the people and services involved; columns follow a run from trigger to output. Click to open full size.</p>
+      </section>
+
       <section aria-labelledby="trust" className="grid gap-6 sm:grid-cols-3">
         <h2 id="trust" className="sr-only">
           Why you can trust it

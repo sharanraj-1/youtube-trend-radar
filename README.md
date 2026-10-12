@@ -34,7 +34,13 @@ Vercel Cron / GitHub Actions / admin button
 | VALIDATE | zod schema; evidence IDs must belong to the cluster; no invented numbers; unique themes; snapshots under 30 h old; one repair call, else stats-only | – |
 | RENDER / DELIVER | server-rendered web + email HTML + JSON; Resend email and Telegram alerts are optional and best-effort | – |
 
-See [COMPONENTS_MAP.md](COMPONENTS_MAP.md) for the full diagram, data-flow lifecycle and failure-handling table.
+See [COMPONENTS_MAP.md](COMPONENTS_MAP.md) for the full diagram, data-flow lifecycle and failure-handling table, and the one-page swimlane map: [docs/components-map.pdf](docs/components-map.pdf) / [PNG](docs/components-map.png).
+
+To update the swimlane map after changing the system: edit `scripts/build-components-map.mjs`, run `npm run map`, then render with headless Chrome:
+
+```bash
+chrome --headless=new --no-pdf-header-footer --print-to-pdf=docs/components-map.pdf docs/components-map.html
+```
 
 ## Pages & routes
 
