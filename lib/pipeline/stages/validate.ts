@@ -66,7 +66,8 @@ export async function validate(ctx: StageContext): Promise<StageResult> {
           const a = first.perCluster.get(vc.id);
           const b = second.perCluster.get(vc.id);
           if (a?.parsed && a.errors.length === 0) continue;
-          if (b) perCluster.set(vc.id, b);
+          // A repair that broke the schema must not throw away a usable first answer (finalize salvages it).
+          if (b && (b.parsed || !a?.parsed)) perCluster.set(vc.id, b);
         }
         if (data.week_summary) weekSummary = data.week_summary;
       } catch (err) {

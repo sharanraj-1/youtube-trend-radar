@@ -3,6 +3,7 @@ import {
   allowedNumbersFrom,
   disallowedNumbers,
   finalizeNarrative,
+  resolveEvidenceIds,
   stripNumberSentences,
   validateSynthesis,
   type ValidationCluster,
@@ -114,5 +115,31 @@ describe("regression: decimals inside product names (live run #2)", () => {
   });
   it("still strips a sentence with an invented decimal", () => {
     expect(stripNumberSentences("Claude Haiku 5.5 is out. Views rose 3.2x this week.", vc.allowedNumbers)).toBe("Claude Haiku 5.5 is out.");
+  });
+});
+
+describe("resolveEvidenceIds (run #12: Gemini dropped one character of a video ID)", () => {
+  const ids = ["1C8_n9nnx5Y", "Lwhiyv-tHjI", "dQw4w9WgXcQ"];
+  it("corrects a one-character typo to this cluster's real ID", () => {
+    expect(resolveEvidenceIds(["1C8_n9nnx5Y", "LwhiyvtHjI"], ids)).toEqual({ ids: ["1C8_n9nnx5Y", "Lwhiyv-tHjI"], foreign: [], corrected: 1 });
+    expect(resolveEvidenceIds(["dQw4w9WgXcX"], ids).ids).toEqual(["dQw4w9WgXcQ"]); // substitution
+    expect(resolveEvidenceIds(["dQw4w9WgXcQQ"], ids).ids).toEqual(["dQw4w9WgXcQ"]); // insertion
+  });
+  it("never lets a foreign or far-off ID through, and drops duplicates", () => {
+    expect(resolveEvidenceIds(["zzzzzzzzzzz", "dQw4w9WgXcQ", "dQw4w9WgXcQ"], ids)).toEqual({ ids: ["dQw4w9WgXcQ"], foreign: ["zzzzzzzzzzz"], corrected: 0 });
+    // ambiguous: one edit from two cluster videos -> not guessed
+    expect(resolveEvidenceIds(["abcd"], ["abce", "abcf"]).foreign).toEqual(["abcd"]);
+  });
+  it("lets a 2-video trend keep its narrative after a typo", () => {
+    const small: ValidationCluster = { ...cluster, videoIds: ["1C8_n9nnx5Y", "Lwhiyv-tHjI"] };
+    const raw = { ...good, evidence_video_ids: ["1C8_n9nnx5Y", "LwhiyvtHjI"] };
+    const r = validateSynthesis([raw], [small]);
+    expect(r.errors).toEqual([]);
+    const res = finalizeNarrative(r.perCluster.get("11"), small, new Set());
+    expect(res.mode).toBe("full");
+    if (res.mode === "full") expect(res.narrative.evidence_video_ids).toEqual(["1C8_n9nnx5Y", "Lwhiyv-tHjI"]);
+  });
+  it("flags the same video cited twice so the repair pass can fix it", () => {
+    expect(validateSynthesis([{ ...good, evidence_video_ids: ["aaa", "aaa"] }], [cluster]).errors.join(" ")).toMatch(/at least 2 different/);
   });
 });

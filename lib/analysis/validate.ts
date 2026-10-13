@@ -46,6 +46,41 @@ export function disallowedNumbers(text: string, allowed: Set<string>): string[] 
   return numbersIn(text).filter((n) => !allowed.has(n));
 }
 
+/** True when a and b differ by at most one inserted, deleted or substituted character. */
+function withinOneEdit(a: string, b: string): boolean {
+  if (a === b) return true;
+  if (Math.abs(a.length - b.length) > 1) return false;
+  let i = 0;
+  while (i < a.length && i < b.length && a[i] === b[i]) i++;
+  if (a.length === b.length) return a.slice(i + 1) === b.slice(i + 1);
+  return a.length > b.length ? a.slice(i + 1) === b.slice(i) : a.slice(i) === b.slice(i + 1);
+}
+
+/**
+ * Maps the model's evidence IDs onto this cluster's real video IDs. Gemini sometimes drops or swaps one
+ * character of an 11-char YouTube ID; such a typo is corrected only when it is one edit away from exactly
+ * one video in THIS cluster, so a foreign or invented ID can never get through. Unmatched IDs are returned
+ * as `foreign`; duplicates are removed.
+ */
+export function resolveEvidenceIds(ids: string[], clusterVideoIds: string[]): { ids: string[]; foreign: string[]; corrected: number } {
+  const out: string[] = [];
+  const foreign: string[] = [];
+  let corrected = 0;
+  for (const id of ids) {
+    let real: string | undefined = clusterVideoIds.includes(id) ? id : undefined;
+    if (!real) {
+      const near = clusterVideoIds.filter((v) => withinOneEdit(id, v));
+      if (near.length === 1) {
+        real = near[0];
+        corrected++;
+      }
+    }
+    if (!real) foreign.push(id);
+    else if (!out.includes(real)) out.push(real);
+  }
+  return { ids: out, foreign, corrected };
+}
+
 export interface ValidationReport {
   errors: string[]; // fed back to the model on the single repair attempt
   perCluster: Map<string, { parsed: SynthCluster | null; errors: string[] }>;
@@ -73,9 +108,10 @@ export function validateSynthesis(rawClusters: Record<string, unknown>[], cluste
       errors.push(...errs.map((e) => `cluster ${id}: ${e}`));
       continue;
     }
-    const n = parsed.data;
-    const foreign = n.evidence_video_ids.filter((v) => !c.videoIds.includes(v));
-    if (foreign.length) errs.push(`evidence_video_ids not in this cluster: ${foreign.join(", ")}`);
+    const resolved = resolveEvidenceIds(parsed.data.evidence_video_ids, c.videoIds);
+    const n = { ...parsed.data, evidence_video_ids: resolved.ids.concat(resolved.foreign) };
+    if (resolved.foreign.length) errs.push(`evidence_video_ids not in this cluster: ${resolved.foreign.join(", ")}`);
+    else if (resolved.ids.length < 2) errs.push("evidence_video_ids needs at least 2 different video_ids from this cluster");
     for (const [field, text] of [
       ["theme_name", n.theme_name],
       ["why_now", n.why_now],
@@ -112,8 +148,9 @@ export function finalizeNarrative(entry: { parsed: SynthCluster | null } | undef
   if (!entry?.parsed) return { mode: "stats_only", reason: "model output missing or failed schema" };
   const n = entry.parsed;
   const notes: string[] = [];
-  const evidence = n.evidence_video_ids.filter((v) => c.videoIds.includes(v));
-  if (evidence.length < n.evidence_video_ids.length) notes.push("dropped evidence IDs outside cluster");
+  const { ids: evidence, foreign, corrected } = resolveEvidenceIds(n.evidence_video_ids, c.videoIds);
+  if (foreign.length) notes.push("dropped evidence IDs outside cluster");
+  if (corrected) notes.push("corrected mistyped evidence IDs");
   if (evidence.length < 2) return { mode: "stats_only", reason: "fewer than 2 valid evidence videos" };
 
   let theme = n.theme_name;
