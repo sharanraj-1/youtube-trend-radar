@@ -2,16 +2,20 @@ import { z } from "zod";
 import { fetchJson, HttpError, withRetry } from "../retry";
 import { log } from "../log";
 import { QuotaExceededError, QuotaManager, type Endpoint } from "./quota";
+import { clip, pgSafe } from "../text";
 
 const API = "https://www.googleapis.com/youtube/v3";
 
 // ---------- response schemas (only the fields we use; everything else passes through) ----------
 
+// Free text from creators is cleaned of characters Postgres rejects (see lib/text.ts).
+const Txt = z.string().transform(pgSafe);
+
 const Thumbs = z.record(z.string(), z.object({ url: z.string() }).passthrough()).optional();
 
 export const ChannelItem = z.object({
   id: z.string(),
-  snippet: z.object({ title: z.string(), customUrl: z.string().optional(), thumbnails: Thumbs }).passthrough(),
+  snippet: z.object({ title: Txt, customUrl: z.string().optional(), thumbnails: Thumbs }).passthrough(),
   contentDetails: z
     .object({ relatedPlaylists: z.object({ uploads: z.string().optional() }).passthrough() })
     .passthrough()
@@ -29,10 +33,10 @@ export const VideoItem = z.object({
     .object({
       publishedAt: z.string(),
       channelId: z.string(),
-      channelTitle: z.string().optional(),
-      title: z.string(),
-      description: z.string().optional().default(""),
-      tags: z.array(z.string()).optional(),
+      channelTitle: Txt.optional(),
+      title: Txt,
+      description: Txt.optional().default(""),
+      tags: z.array(Txt).optional(),
       categoryId: z.string().optional(),
       defaultLanguage: z.string().optional(),
       defaultAudioLanguage: z.string().optional(),
@@ -49,7 +53,7 @@ export type VideoItem = z.infer<typeof VideoItem>;
 
 const PlaylistItem = z.object({
   contentDetails: z.object({ videoId: z.string(), videoPublishedAt: z.string().optional() }).passthrough(),
-  snippet: z.object({ publishedAt: z.string().optional(), title: z.string().optional() }).passthrough().optional(),
+  snippet: z.object({ publishedAt: z.string().optional(), title: Txt.optional() }).passthrough().optional(),
 });
 
 const SearchItem = z.object({
@@ -210,7 +214,7 @@ export class YouTubeClient {
       }, listOf(CommentThread));
       return res.items.map((t) => {
         const s = t.snippet.topLevelComment.snippet;
-        return { text: (s.textOriginal ?? s.textDisplay ?? "").slice(0, 400), likes: s.likeCount ?? 0 };
+        return { text: clip(s.textOriginal ?? s.textDisplay ?? "", 400), likes: s.likeCount ?? 0 };
       });
     } catch (err) {
       if (err instanceof HttpError && (err.status === 403 || err.status === 404) && !/quota/i.test(err.reason ?? "")) {

@@ -163,7 +163,12 @@ export async function runNextStage(runId?: number, opts: { budgetMs?: number } =
     return { outcome: "advanced", runId: run.id, stage, next };
   } catch (err) {
     // Drizzle errors embed the full SQL + params; keep logs/DB readable.
-    const message = (err instanceof Error ? `${err.name}: ${err.message}${err.cause instanceof Error ? ` (cause: ${err.cause.message})` : ""}` : String(err)).slice(0, 1200);
+    // The cause (the actual Postgres reason) goes first so the 1200-char cap never cuts it off.
+    const message = (
+      err instanceof Error
+        ? `${err.cause instanceof Error ? `${err.cause.message} | ` : ""}${err.name}: ${err.message}`
+        : String(err)
+    ).slice(0, 1200);
     log.error("stage failed", { runId: run.id, stage, error: message });
     await finishBookkeeping().catch(() => {});
     const attempts = row.attempts + 1;

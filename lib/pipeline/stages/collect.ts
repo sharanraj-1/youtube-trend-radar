@@ -10,6 +10,7 @@ import { QuotaBudgetError, QuotaExceededError } from "../../youtube/quota";
 import { channelRow, resolveHandles, upsertChannels } from "../../youtube/resolve";
 import { median } from "../../analysis/metrics";
 import { isQuestion } from "../../analysis/questions";
+import { clip } from "../../text";
 import type { StageContext, StageResult } from "../types";
 
 type Source = "peer" | "chart" | "search";
@@ -323,7 +324,7 @@ async function storeVideos(items: VideoItem[], sources: Record<string, Source>, 
       channelId: v.snippet.channelId,
       channelTitle: v.snippet.channelTitle ?? null,
       title: v.snippet.title,
-      descriptionSnippet: (v.snippet.description ?? "").slice(0, 500),
+      descriptionSnippet: clip(v.snippet.description ?? "", 500),
       tags: (v.snippet.tags ?? []).slice(0, 30),
       publishedAt: new Date(v.snippet.publishedAt),
       durationS: d,
@@ -333,8 +334,8 @@ async function storeVideos(items: VideoItem[], sources: Record<string, Source>, 
       firstSeenRunId: runId,
     };
   });
-  for (const part of chunk(rows, 100)) {
-    await db()
+  const upsert = (part: typeof rows) =>
+    db()
       .insert(schema.videos)
       .values(part)
       .onConflictDoUpdate({
@@ -348,8 +349,25 @@ async function storeVideos(items: VideoItem[], sources: Record<string, Source>, 
           isShort: sql`excluded.is_short`,
         },
       });
+  const stored = new Set<string>();
+  for (const part of chunk(rows, 100)) {
+    try {
+      await upsert(part);
+      part.forEach((r) => stored.add(r.id));
+    } catch (err) {
+      // One unstorable video must not sink the run: retry the batch row by row and skip only the bad ones.
+      log.warn("video batch insert failed; retrying row by row", { error: String((err as Error).cause ?? err).slice(0, 200) });
+      for (const r of part) {
+        try {
+          await upsert([r]);
+          stored.add(r.id);
+        } catch (rowErr) {
+          log.warn("skipping unstorable video", { id: r.id, error: String((rowErr as Error).cause ?? rowErr).slice(0, 200) });
+        }
+      }
+    }
   }
-  const snaps = items.map((v) => ({
+  const snaps = items.filter((v) => stored.has(v.id)).map((v) => ({
     videoId: v.id,
     views: Number(v.statistics?.viewCount ?? 0),
     likes: v.statistics?.likeCount !== undefined ? Number(v.statistics.likeCount) : null,
