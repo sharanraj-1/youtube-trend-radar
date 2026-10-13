@@ -24,11 +24,15 @@ export function TrendDetail({
   index,
   total,
   headingRef,
+  isPicked,
+  onTogglePick,
 }: {
   c: BriefCluster;
   index: number;
   total: number;
   headingRef?: React.Ref<HTMLHeadingElement>;
+  isPicked?: (idea: string) => boolean;
+  onTogglePick?: (idea: string) => void;
 }) {
   const format = c.stats.winning_format ? (FORMAT_PLAIN[c.stats.winning_format] ?? c.stats.winning_format).split(" (")[0] : "Mixed";
   return (
@@ -98,14 +102,50 @@ export function TrendDetail({
         <div className="space-y-8 lg:col-span-7">
           {c.angles && c.angles.length > 0 && (
             <section>
-              <Label>Ideas for your video</Label>
+              <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+                <Label>Ideas for your video</Label>
+                {onTogglePick && <span className="text-xs text-faint">Tap to pick · picks go to Your plan &amp; Idea Studio</span>}
+              </div>
               <ol className="space-y-2.5">
-                {c.angles.map((a, i) => (
-                  <li key={a} className="group flex gap-4 rounded-2xl border border-border bg-surface p-4 transition-colors hover:border-border-strong">
-                    <span className="text-gradient font-serif text-3xl leading-none">{i + 1}</span>
-                    <span className="pt-1 leading-relaxed">{a}</span>
-                  </li>
-                ))}
+                {c.angles.map((a, i) => {
+                  const on = isPicked?.(a) ?? false;
+                  const body = (
+                    <>
+                      <span className="text-gradient w-6 shrink-0 font-serif text-3xl leading-none">{i + 1}</span>
+                      <span className="flex-1 pt-1 leading-relaxed">{a}</span>
+                      {onTogglePick && (
+                        <span
+                          aria-hidden
+                          className={`mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full border transition-all ${
+                            on ? "btn-primary border-transparent" : "border-border-strong text-transparent group-hover:text-faint"
+                          }`}
+                        >
+                          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M5 12.5l4.5 4.5L19 7.5" />
+                          </svg>
+                        </span>
+                      )}
+                    </>
+                  );
+                  return (
+                    <li key={a}>
+                      {onTogglePick ? (
+                        <button
+                          type="button"
+                          onClick={() => onTogglePick(a)}
+                          aria-pressed={on}
+                          className={`group flex w-full gap-4 rounded-2xl border p-4 text-left transition-all duration-200 ${
+                            on ? "ring-gradient border-transparent bg-accent-soft" : "border-border bg-surface hover:-translate-y-0.5 hover:border-border-strong"
+                          }`}
+                        >
+                          {body}
+                        </button>
+                      ) : (
+                        <div className="flex gap-4 rounded-2xl border border-border bg-surface p-4">{body}</div>
+                      )}
+                    </li>
+                  );
+                })}
               </ol>
             </section>
           )}

@@ -17,6 +17,7 @@ export const COMPONENTS_MERMAID = `flowchart TB
     WEB["Web app<br/>momentum board · trend slider · your plan<br/>/ · /briefs · /runs · /architecture · /settings"]
     FB["GET /api/feedback<br/>HMAC-signed links"]
     HEALTH["GET /api/health"]
+    CHAT["Idea Studio<br/>POST /api/chat (streaming) · /api/chat/summary"]
   end
 
   subgraph Guardrails
@@ -59,4 +60,8 @@ export const COMPONENTS_MERMAID = `flowchart TB
   WEB --> T2
   FB --> T2
   RS --> USER
-  WEB --> USER`;
+  WEB --> USER
+  WEB --> CHAT
+  CHAT --> GEM
+  CHAT --> RS
+  CHAT --> TG`;

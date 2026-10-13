@@ -55,6 +55,7 @@ const CARDS = {
   gemIn: [6, 1, ["Reads 50 titles at a", "time: format, products,", "on-topic or not"], "titles are data, not orders"],
   gemCtx: [6, 2, ["Labels each video once", "and reuses them next", "week"], "cached per prompt version"],
   gemProc: [6, 3, ["Writes theme names,", "why-now and video ideas", "for the top trends"], "no numbers allowed"],
+  gemOut: [6, 4, ["Idea Studio chat: builds", "on his picks, then recaps", "to email + Telegram"], "/api/chat · no fake stats"],
 };
 
 const laneY = (i) => LANE_TOP + i * LANE_H;
@@ -127,7 +128,9 @@ const arrows = [
   [bottom("appProc"), top("gemProc")],
   [right("appProc"), left("appOut")],
   // Gemini's words come back to be fact-checked
-  [right("gemProc"), [B("appOut").cx, B("gemProc").cy], [B("appOut").cx, B("appOut").bottom + 2]],
+  [right("gemProc"), [colX(4) + 9, B("gemProc").cy], [colX(4) + 9, B("appOut").cy + 18], [B("appOut").x - 2, B("appOut").cy + 18]],
+  // the brief + his picks feed the Idea Studio chat
+  [bottom("appOut"), top("gemOut")],
   [top("appOut"), [B("dlvOut").cx, B("dlvOut").bottom + 2]],
   [top("dlvOut"), [B("ishOut").cx, B("ishOut").bottom + 2]],
 ];
@@ -192,6 +195,7 @@ const html = `<!doctype html>
         <li>Ishaan decides what to film; the brief only recommends</li>
         <li>He picks the topics and peer channels to track</li>
         <li>Every "film / maybe / skip" call is his, saved to his plan</li>
+        <li>He bounces ideas in the Idea Studio; the AI only suggests</li>
       </ul>
     </div>
     <div>
@@ -200,7 +204,7 @@ const html = `<!doctype html>
         <li>A step that fails 3× still publishes a partial brief</li>
         <li>Run stalls? GitHub Actions and open tabs resume it</li>
         <li>No brief by 9:30 AM → backup brief + Telegram alert</li>
-        <li>107 automated tests cover scoring, trends and fact-checks</li>
+        <li>112 automated tests cover scoring, trends, fact-checks and chat</li>
       </ul>
     </div>
   </div>

@@ -39,6 +39,12 @@ export class GeminiQuotaExhaustedError extends Error {
 /** Models that hit their per-day free quota in this process; skipped until the process recycles. */
 const exhaustedToday = new Set<string>();
 
+/** Shared SDK client (chat streaming reuses it). */
+export const geminiSdk = () => ai();
+/** Flash models still worth trying in this process, primary first. */
+export const usableModels = () => modelChain().filter((m) => !exhaustedToday.has(m));
+export const markModelExhausted = (m: string) => void exhaustedToday.add(m);
+
 export function isDailyQuotaError(err: unknown) {
   return err instanceof ApiError && err.status === 429 && /PerDay/i.test(err.message);
 }

@@ -53,6 +53,8 @@ chrome --headless=new --no-pdf-header-footer --print-to-pdf=docs/components-map.
 | `/settings` | open (sign-in only if `ADMIN_PASSWORD` is set) | Edit config, check channels, "Create a new brief", test email/Telegram |
 | `POST /api/runs/manual` | admin cookie or `Bearer CRON_SECRET` | Start a run (globally limited to one per 30 min) |
 | `POST /api/pipeline/step` | `Bearer CRON_SECRET` | Pipeline runner (self-chaining) |
+| `POST /api/chat` | public, rate-limited | Idea Studio: streams a Gemini Flash reply grounded in the brief + ticked ideas |
+| `POST /api/chat/summary` | public, rate-limited | Recaps the chat with Gemini and sends it to the configured email + Telegram |
 | `POST /api/runs/resume` | public, idempotent | Continues an *existing* stalled run (used by open browser tabs and the GitHub Actions pump); never starts a run |
 | `GET /api/cron/{snapshot,weekly,watchdog}` | `Bearer CRON_SECRET` | Vercel Cron targets |
 | `GET /api/feedback` | HMAC-signed link | 👍 / 👎 / "Filming this" votes |

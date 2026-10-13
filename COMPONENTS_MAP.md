@@ -29,6 +29,7 @@ flowchart TB
     WEB["Web app<br/>momentum board · trend slider · your plan<br/>/ · /briefs · /runs · /architecture · /settings"]
     FB["GET /api/feedback<br/>HMAC-signed links"]
     HEALTH["GET /api/health"]
+    CHAT["Idea Studio<br/>POST /api/chat (streaming) · /api/chat/summary"]
   end
 
   subgraph Guardrails
@@ -72,6 +73,10 @@ flowchart TB
   FB --> T2
   RS --> USER
   WEB --> USER
+  WEB --> CHAT
+  CHAT --> GEM
+  CHAT --> RS
+  CHAT --> TG
 ```
 
 ## Diagram (ASCII)
@@ -122,6 +127,7 @@ flowchart TB
 | **VALIDATE** | zod schema, evidence IDs ⊂ cluster, no digits outside the cluster stats/entity names, unique themes, snapshots < 30 h. One repair call; anything still failing renders stats-only. |
 | **RENDER** | Builds the brief JSON plus inline-styled HTML (web + email). The template injects every statistic. |
 | **Web app** | Studio-themed UI. The home page is a hero with a momentum board (views vs. channel normal, per trend), a swipeable trend slider (scroll-snap, arrows, dots, keyboard, touch) and a synced detail panel. The film / maybe / skip decision auto-advances the slider and fills **Your plan**. Also: archive grid, run log, how-it-works and Admin "control room". |
+| **Idea Studio** | Slide-over chat on the brief. Ideas Ishaan ticks under "Ideas for your video" (saved per brief in his browser) plus his film / maybe / skip calls and the brief itself are sent as context to `POST /api/chat`, which streams a Gemini Flash reply (same Flash fallback chain; untrusted-data framing; no invented stats). `POST /api/chat/summary` has Gemini recap the discussion (structured JSON) and sends it to the email and Telegram chat configured on the server. Both routes are rate-limited per client. |
 | **DELIVER** | Resend email and Telegram are best-effort; their failures are recorded in `briefs.delivery` and never fail the run. |
 | **Neon Postgres** | `settings`, `channels`, `videos`, `video_snapshots`, `enrichments`, `runs`, `stage_outputs`, `clusters`, `briefs`, `feedback`. |
 | **Guardrails** | Quota manager (per-run unit budget, charged before each call), injection framing (untrusted data blocks, delimiter neutralising), validator, watchdog, env validation at boot, log redaction. |
@@ -160,5 +166,7 @@ flowchart TB
 | Email / Telegram failure | result object | Recorded in `briefs.delivery`; the run still succeeds. |
 | No brief by Sunday morning | watchdog cron | Publishes a **FALLBACK** brief (last week's non-saturated clusters with a red banner), marks the stuck run failed and alerts Telegram. |
 | Self-trigger blocked by Vercel loop protection (HTTP 508) | `triggerStep` sees 508 | Logged as a pause, not an error. Quick stages already run back-to-back in one invocation. The run is continued by the GitHub Actions pump, by any open browser tab via `POST /api/runs/resume` (continues stalled runs only), by the daily cron, or by the watchdog driving it in-process. |
+| Chat: Gemini quota out / overloaded | `streamChat` falls through the Flash models before streaming starts | Friendly "busy, try again later" message; nothing else is affected. |
+| Chat flooding | per-client sliding window (25 messages / 10 min, 5 summaries / 10 min) | HTTP 429 with a retry hint. Summaries only go to the server-configured email and Telegram, never to an address from the request. |
 | Duplicate triggers | run lock + 12 h weekly dedupe + stage claim | No-op. |
 | Missing/invalid env vars | zod at boot (`instrumentation.ts`) and on first use | Logged by name only; `/api/health` reports which are missing. |

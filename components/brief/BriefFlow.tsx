@@ -8,6 +8,8 @@ import { compactNumber, istDate, istDateTime, multiple } from "@/lib/render/form
 import { DECISIONS, FORMAT_PLAIN, LIFECYCLE_GUIDE, localPath, type Decision } from "@/lib/render/guide";
 import { LifecycleChip } from "./LifecycleTrack";
 import { TrendDetail } from "./TrendDetail";
+import { IdeaStudio } from "./IdeaStudio";
+import { ideaId, ideasKey, useJson, writeJson, type PickedIdea } from "./store";
 
 // ───────── slider geometry: centred on phones, left-aligned with the page from 640px ─────────
 const isWide = () => typeof window !== "undefined" && window.matchMedia("(min-width: 640px)").matches;
@@ -78,6 +80,19 @@ export function BriefFlow({ brief, briefId, createdAt }: { brief: BriefJson; bri
   const [active, setActive] = useState(0);
   const raw = useSyncExternalStore(subscribe, () => readRaw(briefId), () => "{}");
   const decisions = useMemo(() => parse(raw), [raw]);
+  const picks = useJson<PickedIdea[]>(ideasKey(briefId), []);
+  const pickedIds = useMemo(() => new Set(picks.map(ideaId)), [picks]);
+  const [studioOpen, setStudioOpen] = useState(false);
+
+  const togglePick = useCallback(
+    (c: BriefCluster, idea: string) => {
+      const id = ideaId({ clusterId: c.id, idea });
+      const next = pickedIds.has(id) ? picks.filter((p) => ideaId(p) !== id) : [...picks, { clusterId: c.id, theme: c.theme_name, idea }];
+      writeJson(ideasKey(briefId), next);
+    },
+    [briefId, picks, pickedIds],
+  );
+  const removePick = useCallback((p: PickedIdea) => writeJson(ideasKey(briefId), picks.filter((x) => ideaId(x) !== ideaId(p))), [briefId, picks]);
   const trackRef = useRef<HTMLDivElement>(null);
   const sliderRef = useRef<HTMLElement>(null);
   /** While the slider is animating to a card we chose, ignore its scroll events until it arrives. */
@@ -254,7 +269,14 @@ export function BriefFlow({ brief, briefId, createdAt }: { brief: BriefJson; bri
 
       {/* ───────── Selected trend ───────── */}
       <section aria-live="polite" className="glass rounded-[2rem] p-5 sm:p-8 lg:p-10">
-        <TrendDetail key={current.id} c={current} index={active} total={total} />
+        <TrendDetail
+          key={current.id}
+          c={current}
+          index={active}
+          total={total}
+          isPicked={(idea) => pickedIds.has(ideaId({ clusterId: current.id, idea }))}
+          onTogglePick={(idea) => togglePick(current, idea)}
+        />
         <DecisionBar c={current} current={decisions[current.id]} onDecide={(d) => decide(current, d)} />
         <div className="mt-6 flex items-center justify-between gap-4 border-t border-border pt-5 text-sm">
           <button onClick={() => goTo(active - 1, { scrollPage: true })} disabled={active === 0} className="flex items-center gap-1 text-muted transition hover:text-text disabled:opacity-0">
@@ -272,7 +294,16 @@ export function BriefFlow({ brief, briefId, createdAt }: { brief: BriefJson; bri
         </div>
       </section>
 
-      <Plan brief={brief} decisions={decisions} onPick={(i) => goTo(i, { scrollPage: true })} />
+      <Plan
+        brief={brief}
+        decisions={decisions}
+        onPick={(i) => goTo(i, { scrollPage: true })}
+        picks={picks}
+        onRemovePick={removePick}
+        onBrainstorm={() => setStudioOpen(true)}
+      />
+
+      <IdeaStudio open={studioOpen} onOpenChange={setStudioOpen} briefId={briefId} picks={picks} decisions={decisions} onRemovePick={removePick} />
     </div>
   );
 }
@@ -512,7 +543,21 @@ function DecisionBar({ c, current, onDecide }: { c: BriefCluster; current?: Deci
 }
 
 // ───────────────────────── Plan ─────────────────────────
-function Plan({ brief, decisions, onPick }: { brief: BriefJson; decisions: Record<number, Decision>; onPick: (i: number) => void }) {
+function Plan({
+  brief,
+  decisions,
+  onPick,
+  picks,
+  onRemovePick,
+  onBrainstorm,
+}: {
+  brief: BriefJson;
+  decisions: Record<number, Decision>;
+  onPick: (i: number) => void;
+  picks: PickedIdea[];
+  onRemovePick: (p: PickedIdea) => void;
+  onBrainstorm: () => void;
+}) {
   const cols: { key: Decision; title: string; empty: string }[] = [
     { key: "filmed", title: "To film this week", empty: "Nothing yet. Pick a trend above." },
     { key: "up", title: "Maybe later", empty: "—" },
@@ -576,6 +621,8 @@ function Plan({ brief, decisions, onPick }: { brief: BriefJson; decisions: Recor
         </p>
       )}
 
+      <PickedIdeas brief={brief} picks={picks} onRemove={onRemovePick} onBrainstorm={onBrainstorm} onPick={onPick} />
+
       {brief.skip.length > 0 && (
         <div className="glass rounded-3xl p-5">
           <h3 className="text-sm font-semibold">Topics to skip this week</h3>
@@ -592,6 +639,78 @@ function Plan({ brief, decisions, onPick }: { brief: BriefJson; decisions: Recor
 
       <MadeHow brief={brief} />
     </section>
+  );
+}
+
+/** The ideas Ishaan ticked, handed back: copy them, remove them, or take them into the Idea Studio. */
+function PickedIdeas({
+  brief,
+  picks,
+  onRemove,
+  onBrainstorm,
+  onPick,
+}: {
+  brief: BriefJson;
+  picks: PickedIdea[];
+  onRemove: (p: PickedIdea) => void;
+  onBrainstorm: () => void;
+  onPick: (i: number) => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  async function copy() {
+    const text = picks.map((p, i) => `${i + 1}. ${p.idea}  (${p.theme})`).join("\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      // clipboard blocked: nothing else to do
+    }
+  }
+  return (
+    <div className="glass ring-gradient rounded-3xl p-5 sm:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 className="flex items-center gap-2 text-sm font-semibold">
+            Ideas you picked <span className="font-mono text-xs text-faint">{picks.length}</span>
+          </h3>
+          <p className="mt-1 text-sm text-muted">
+            {picks.length ? "Your shortlist from the trend cards. Take it into the Idea Studio to build it out." : "Tap any idea under “Ideas for your video” to add it here."}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {picks.length > 0 && (
+            <button onClick={copy} className="rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium transition hover:border-border-strong">
+              {copied ? "Copied ✓" : "Copy all"}
+            </button>
+          )}
+          <button onClick={onBrainstorm} className="btn-primary rounded-full px-4 py-2 text-sm font-semibold">
+            Brainstorm in Idea Studio
+          </button>
+        </div>
+      </div>
+      {picks.length > 0 && (
+        <ol className="mt-4 space-y-2">
+          {picks.map((p, n) => {
+            const i = brief.clusters.findIndex((c) => c.id === p.clusterId);
+            return (
+              <li key={`${p.clusterId}${p.idea}`} className="flex items-start gap-3 rounded-2xl border border-border bg-surface px-4 py-3">
+                <span className="text-gradient w-5 shrink-0 font-serif text-2xl leading-none">{n + 1}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm leading-relaxed">{p.idea}</p>
+                  <button onClick={() => i >= 0 && onPick(i)} className="mt-0.5 text-xs text-faint underline-offset-4 hover:text-text hover:underline">
+                    {p.theme}
+                  </button>
+                </div>
+                <button onClick={() => onRemove(p)} aria-label={`Remove ${p.idea}`} className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-faint transition hover:bg-surface-strong hover:text-text">
+                  ×
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </div>
   );
 }
 
