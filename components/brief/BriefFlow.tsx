@@ -95,6 +95,7 @@ export function BriefFlow({ brief, briefId, createdAt }: { brief: BriefJson; bri
   const removePick = useCallback((p: PickedIdea) => writeJson(ideasKey(briefId), picks.filter((x) => ideaId(x) !== ideaId(p))), [briefId, picks]);
   const trackRef = useRef<HTMLDivElement>(null);
   const sliderRef = useRef<HTMLElement>(null);
+  const detailRef = useRef<HTMLElement>(null);
   /** While the slider is animating to a card we chose, ignore its scroll events until it arrives. */
   const target = useRef<number | null>(null);
 
@@ -102,7 +103,7 @@ export function BriefFlow({ brief, briefId, createdAt }: { brief: BriefJson; bri
 
   /** Scroll the track so card i is centred, and select it. */
   const goTo = useCallback(
-    (i: number, opts: { scrollPage?: boolean } = {}) => {
+    (i: number, opts: { scrollPage?: boolean; showDetail?: boolean } = {}) => {
       const idx = Math.max(0, Math.min(total - 1, i));
       setActive(idx);
       const track = trackRef.current;
@@ -117,6 +118,8 @@ export function BriefFlow({ brief, briefId, createdAt }: { brief: BriefJson; bri
         }, 1500);
       }
       if (opts.scrollPage) sliderRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      // Picking a trend takes you down to its full details (after React swaps the panel's content in).
+      if (opts.showDetail) window.setTimeout(() => detailRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
     },
     [total],
   );
@@ -206,7 +209,7 @@ export function BriefFlow({ brief, briefId, createdAt }: { brief: BriefJson; bri
         onStart={() => goTo(0, { scrollPage: true })}
         decided={decidedCount}
         total={total}
-        momentum={<Momentum trends={trends} active={active} onPick={(i) => goTo(i, { scrollPage: true })} />}
+        momentum={<Momentum trends={trends} active={active} onPick={(i) => goTo(i, { showDetail: true })} />}
       />
 
       {/* ───────── Slider ───────── */}
@@ -242,7 +245,7 @@ export function BriefFlow({ brief, briefId, createdAt }: { brief: BriefJson; bri
         <div className="-mx-4 sm:-mx-6">
           <div ref={trackRef} className="snap-track fade-edges flex gap-4 overflow-x-auto px-[7vw] py-4 sm:gap-5 sm:pl-6 sm:pr-[calc(100%-420px-1.5rem)]">
             {trends.map((c, i) => (
-              <SlideCard key={c.id} c={c} i={i} total={total} active={i === active} decision={decisions[c.id]} onSelect={() => goTo(i)} />
+              <SlideCard key={c.id} c={c} i={i} total={total} active={i === active} decision={decisions[c.id]} onSelect={() => goTo(i, { showDetail: true })} />
             ))}
           </div>
         </div>
@@ -268,7 +271,7 @@ export function BriefFlow({ brief, briefId, createdAt }: { brief: BriefJson; bri
       </section>
 
       {/* ───────── Selected trend ───────── */}
-      <section aria-live="polite" className="glass rounded-[2rem] p-5 sm:p-8 lg:p-10">
+      <section ref={detailRef} id="trend-detail" aria-live="polite" className="glass rounded-[2rem] p-5 sm:p-8 lg:p-10">
         <TrendDetail
           key={current.id}
           c={current}
@@ -297,7 +300,7 @@ export function BriefFlow({ brief, briefId, createdAt }: { brief: BriefJson; bri
       <Plan
         brief={brief}
         decisions={decisions}
-        onPick={(i) => goTo(i, { scrollPage: true })}
+        onPick={(i) => goTo(i, { showDetail: true })}
         picks={picks}
         onRemovePick={removePick}
         onBrainstorm={() => setStudioOpen(true)}
